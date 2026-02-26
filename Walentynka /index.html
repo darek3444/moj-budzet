@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>❤️</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #ffe6e6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ff4d4d;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #yesBtn {
+            background-color: #ff4d4d;
+            color: white;
+            font-weight: bold;
+        }
+
+        #yesBtn:hover {
+            transform: scale(1.1);
+            background-color: #ff3333;
+            border: #ff3333 solid;
+        }
+
+        #noBtn {
+            background-color: #e0e0e0;
+            color: #333;
+            min-width: 100px; 
+        }
+
+        #successScreen {
+            display: none;
+        }
+
+        img {
+            max-width: 100%;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        #questionScreen img {
+            width: 400px; 
+        }
+
+        .heart {
+            color: #ff4d4d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="questionScreen">
+        <img src="image.png" alt="Słodki szczeniak w koszyku">
+        
+        <h1>Wikusiu, zostaniesz moją walentynką? <span class="heart">❤️❤️❤️</span></h1>
+        
+        <div class="buttons">
+            <button id="yesBtn" onclick="showLove()">TAK</button>
+            <button id="noBtn" onmouseover="moveButton()">NIE</button>
+        </div>
+    </div>
+
+    <div class="container" id="successScreen">
+        <h1>❤️Nie mogłaś wybrać lepiej<span class="heart">❤️</span></h1>
+        
+        <img src="Time For Bed Dogs GIF.gif" alt="Happy Dance">
+        
+        <p style="font-size: 2.5rem; margin-top: 20px; color:#ff4d4d; font-weight: bold;">❤️Kocham cie<span class="heart">❤️</span></p>
+    </div>
+
+    <script>
+        const noTexts = [
+            "Ejjj", 
+            "Joker?", 
+            "HALOOOO", 
+            "NOOOOOOO"
+        ];
+        let noClickCount = 0;
+
+        function showLove() {
+            document.getElementById('questionScreen').style.display = 'none';
+            document.getElementById('successScreen').style.display = 'flex'; 
+            
+    
+        }
+
+        function moveButton() {
+            var x = Math.random() * (window.innerWidth - 250); 
+            var y = Math.random() * (window.innerHeight - 250);
+            
+            var btn = document.getElementById('noBtn');
+            btn.style.position = 'absolute';
+            btn.style.left = x + 'px';
+            btn.style.top = y + 'px';
+
+            if (noClickCount < noTexts.length) {
+                btn.innerText = noTexts[noClickCount];
+                noClickCount++;
+            }
+        }
+    </script>
+</body>
+</html>
