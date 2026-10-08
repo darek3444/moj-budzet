@@ -11,20 +11,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Subskrypcja raz na całą sesję (wcześniej odnawiana przy każdej zmianie strony)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
-      if (!session && pathname !== '/login') router.push('/login');
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session && pathname !== '/login') router.push('/login');
     });
 
     return () => subscription.unsubscribe();
-  }, [router, pathname]);
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !session && pathname !== '/login') router.replace('/login');
+  }, [loading, session, pathname, router]);
 
   if (loading) {
     return (

@@ -1,20 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import useSWR from 'swr';
+import { useTransakcje } from '../../lib/useTransakcje';
+import { KATEGORIE_WYDATKOW, getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Download, Settings, Loader2 } from 'lucide-react';
-import Papa from 'papaparse';
-
-// Ściągamy tylko transakcje do eksportu CSV (bo tylko to mamy w bazie)
-const fetchTransactions = async () => {
-  const { data } = await supabase.from('transactions').select('*').order('data_transakcji', { ascending: false });
-  return data || [];
-};
 
 export default function SettingsPage() {
-  const { data: transakcje = [], isLoading } = useSWR('dane_transakcji_eksport', fetchTransactions);
+  // Transakcje potrzebne tylko do eksportu – strona nie czeka na nie z renderem
+  const { data: transakcje = [], isLoading } = useTransakcje();
   
   // Limity trzymamy lokalnie w przeglądarce!
   const [limity, setLimity] = useState<any[]>([]);
@@ -33,29 +27,6 @@ export default function SettingsPage() {
     }
     setCzyZaladowanoLimity(true);
   }, []);
-
-  const formatujWalute = (wartosc: number) => {
-    return `${wartosc.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
-  };
-
-  const getIcon = (kat: string) => {
-    switch(kat) {
-      case 'jedzenie': return '🍕'; case 'transport': return '🚗'; case 'mieszkanie': return '🏠';
-      case 'rozrywka': return '🎮'; case 'zdrowie': return '💊'; case 'edukacja': return '📚'; 
-      case 'ubrania': return '👕'; case 'subskrypcje': return '📱'; case 'oszczednosci': return '🏦';
-      case 'inne_wydatki': return '📦'; default: return '💸';
-    }
-  };
-
-  const formatujNazweKategorii = (kat: string) => {
-    const nazwy: any = {
-      'jedzenie': 'Jedzenie', 'transport': 'Transport', 'mieszkanie': 'Mieszkanie',
-      'rozrywka': 'Rozrywka', 'zdrowie': 'Zdrowie', 'edukacja': 'Edukacja',
-      'ubrania': 'Ubrania', 'subskrypcje': 'Subskrypcje', 'oszczednosci': 'Oszczędności',
-      'inne_wydatki': 'Inne wydatki'
-    };
-    return nazwy[kat] || kat;
-  };
 
   const dodajLimit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +63,11 @@ export default function SettingsPage() {
     localStorage.setItem('moj_budzet_limity', JSON.stringify(odswiezoneLimity));
   };
 
-  const eksportujDane = () => {
+  const eksportujDane = async () => {
     setIsExporting(true);
     try {
+      const { default: Papa } = await import('papaparse');
+
       // 1. Czyścimy i formatujemy dane przed eksportem
       const czysteDane = transakcje.map((t: any) => ({
         'Data transakcji': t.data_transakcji,
@@ -114,17 +87,18 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Moj_Budzet_Raport_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `Moj_Budzet_Raport_${dzisiaj()}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert('Błąd podczas eksportu danych.');
     }
     setIsExporting(false);
   };
 
-  if (isLoading || !czyZaladowanoLimity) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
+  if (!czyZaladowanoLimity) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
 
   return (
     <main className="p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
@@ -151,16 +125,7 @@ export default function SettingsPage() {
               <label className="block text-sm font-bold text-gray-700 mb-2">Kategoria</label>
               <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-slate-200 focus:outline-none">
                 <option value="">Wybierz kategorię</option>
-                <option value="jedzenie">🍕 Jedzenie</option>
-                <option value="transport">🚗 Transport</option>
-                <option value="mieszkanie">🏠 Mieszkanie</option>
-                <option value="rozrywka">🎮 Rozrywka</option>
-                <option value="zdrowie">💊 Zdrowie</option>
-                <option value="edukacja">📚 Edukacja</option>
-                <option value="ubrania">👕 Ubrania</option>
-                <option value="subskrypcje">📱 Subskrypcje</option>
-                <option value="oszczednosci">🏦 Oszczędności</option>
-                <option value="inne_wydatki">📦 Inne wydatki</option>
+                {KATEGORIE_WYDATKOW.map(k => <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>)}
               </select>
             </div>
             
@@ -202,7 +167,7 @@ export default function SettingsPage() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-2xl">
-                        {getIcon(limit.kategoria)}
+                        {getIcon('wydatek', limit.kategoria)}
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 text-lg">{formatujNazweKategorii(limit.kategoria)}</p>
@@ -239,7 +204,7 @@ export default function SettingsPage() {
               </h2>
               <p className="text-gray-500 text-sm font-medium">Pobierz całą swoją historię transakcji w formacie CSV (do Excela lub arkuszy Google).</p>
             </div>
-            <button onClick={eksportujDane} disabled={isExporting || transakcje.length === 0} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2 justify-center whitespace-nowrap">
+            <button onClick={eksportujDane} disabled={isExporting || isLoading || transakcje.length === 0} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2 justify-center whitespace-nowrap">
               {isExporting ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />} Pobierz CSV
             </button>
           </div>

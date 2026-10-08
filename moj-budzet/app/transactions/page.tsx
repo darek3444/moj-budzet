@@ -1,21 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import { supabase } from '../../lib/supabase'; 
-import useSWR from 'swr';
+import { useTransakcje } from '../../lib/useTransakcje';
+import { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
+import { parsujListeIng, wlascicielIng, czyPrzelewWlasny, nazwaTransakcji, type StronaPdf } from '../../lib/importIng';
+import { kategoryzuj, kluczKontrahenta, wczytajReguly, zapiszReguly } from '../../lib/kategoryzacja';
 import { Plus, Search, X, UploadCloud, Trash2, Pencil } from 'lucide-react';
-import Papa from 'papaparse'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
-const fetcher = async () => {
-  const { data } = await supabase.from('transactions').select('*').order('data_transakcji', { ascending: false });
-  return data || [];
+// Ile wierszy renderujemy naraz – reszta po kliknięciu "Pokaż więcej"
+const PORCJA_WIERSZY = 50;
+
+type WierszImportu = {
+  id: number;
+  nazwa: string;
+  kwota: number;
+  typ: 'przychod' | 'wydatek';
+  kategoria: string;
+  kategoriaAuto: string;
+  data_transakcji: string;
+  notatki: string;
+  uwaga: string;
+  zaznaczona: boolean;
 };
 
 export default function TransactionsPage() {
-  const { data: transakcje = [], mutate, isLoading } = useSWR('dane_transakcji', fetcher);
+  const { data: transakcje = [], mutate, isLoading } = useTransakcje();
 
   const [wyszukiwarka, setWyszukiwarka] = useState('');
+  const szukanaFraza = useDeferredValue(wyszukiwarka);
+  const [ileWidocznych, setIleWidocznych] = useState(PORCJA_WIERSZY);
   const [filtrTyp, setFiltrTyp] = useState('wszystkie');
   const [filtrKategoria, setFiltrKategoria] = useState('wszystkie');
 
@@ -31,22 +46,22 @@ export default function TransactionsPage() {
   const [kwota, setKwota] = useState('');
   const [kategoria, setKategoria] = useState('');
   const [notatki, setNotatki] = useState('');
-  const [dataTransakcji, setDataTransakcji] = useState(new Date().toISOString().split('T')[0]);
+  const [dataTransakcji, setDataTransakcji] = useState(dzisiaj);
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [wybranyBank, setWybranyBank] = useState('');
   const [plik, setPlik] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [podglad, setPodglad] = useState<WierszImportu[] | null>(null);
 
-  let bilans = 0;
-  transakcje.forEach((t: any) => {
-    if (t.typ === 'przychod') bilans += Number(t.kwota);
-    if (t.typ === 'wydatek') bilans -= Number(t.kwota);
-  });
-
-  const formatujWalute = (wartosc: number) => {
-    return `${wartosc.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
-  };
+  const bilans = useMemo(() => {
+    let suma = 0;
+    transakcje.forEach(t => {
+      if (t.typ === 'przychod') suma += Number(t.kwota);
+      if (t.typ === 'wydatek') suma -= Number(t.kwota);
+    });
+    return suma;
+  }, [transakcje]);
 
   const otworzDoEdycji = (t: any) => {
     setEditingId(t.id);
@@ -62,7 +77,7 @@ export default function TransactionsPage() {
   const otworzDoDodania = () => {
     setEditingId(null); 
     setNazwa(''); setKwota(''); setNotatki(''); setKategoria('');
-    setDataTransakcji(new Date().toISOString().split('T')[0]);
+    setDataTransakcji(dzisiaj());
     setIsModalOpen(true);
   };
 
@@ -111,10 +126,12 @@ export default function TransactionsPage() {
         const arrayBuffer = await plik.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let pelnyTekst = '';
+        const strony: StronaPdf[] = [];
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
+          strony.push(content.items.map((item: any) => ({ str: item.str, x: item.transform[4], y: item.transform[5] })));
           
           content.items.sort((a: any, b: any) => {
             if (Math.abs(b.transform[5] - a.transform[5]) > 5) return b.transform[5] - a.transform[5];
@@ -135,6 +152,15 @@ export default function TransactionsPage() {
           if (textLine) pelnyTekst += textLine + '\n';
         }
 
+        // Nowy format "Lista transakcji" (tabela z kolumnami); stary wyciąg obsługujemy jak dotąd
+        const listaIng = parsujListeIng(strony);
+        if (listaIng.length > 0) {
+          const wlasciciel = wlascicielIng(strony);
+          listaIng.forEach(t => gotoweTransakcje.push({
+            nazwa: nazwaTransakcji(t), opis: t.tytul, kwota: Math.abs(t.kwota), typ: t.kwota > 0 ? 'przychod' : 'wydatek',
+            data_transakcji: t.data, notatki: 'Import z PDF (ING)', wlasny: czyPrzelewWlasny(t, wlasciciel),
+          }));
+        } else {
         const plaskiTekst = pelnyTekst.replace(/\n/g, ' ').replace(/\s+/g, ' ');
         const bloki = plaskiTekst.split(/(?=\d{2}\.\d{2}\.\d{4}\s)/);
 
@@ -163,12 +189,14 @@ export default function TransactionsPage() {
             czystaNazwa = czystaNazwa.substring(0, 60).trim();
 
             if (!isNaN(parsedKwota) && parsedKwota !== 0) {
-              gotoweTransakcje.push({ nazwa: czystaNazwa, kwota: Math.abs(parsedKwota), typ: parsedKwota > 0 ? 'przychod' : 'wydatek', kategoria: 'inne_wydatki', data_transakcji: dataTransakcji, notatki: 'Import z PDF (ING)' });
+              gotoweTransakcje.push({ nazwa: czystaNazwa, kwota: Math.abs(parsedKwota), typ: parsedKwota > 0 ? 'przychod' : 'wydatek', data_transakcji: dataTransakcji, notatki: 'Import z PDF (ING)' });
             }
           }
         });
+        }
 
       } else if (plik.name.toLowerCase().endsWith('.csv')) {
+        const { default: Papa } = await import('papaparse');
         const reader = new FileReader();
         reader.readAsText(plik, 'windows-1250');
         
@@ -186,7 +214,7 @@ export default function TransactionsPage() {
               header: true, skipEmptyLines: true, delimiter: ';', 
               complete: (results) => {
                 results.data.forEach((row: any) => {
-                  let parsedKwota = 0, parsedNazwa = 'Nieznana transakcja', parsedData = new Date().toISOString().split('T')[0], parsedNotatki = '';
+                  let parsedKwota = 0, parsedNazwa = 'Nieznana transakcja', parsedData = dzisiaj(), parsedNotatki = '';
                   try {
                     if (wybranyBank === 'mbank') {
                       const kwotaStr = row['#Kwota'] || row['Kwota'] || '0';
@@ -205,7 +233,7 @@ export default function TransactionsPage() {
                       if (d) parsedData = d.split('.').reverse().join('-'); 
                     }
                     if (!isNaN(parsedKwota) && parsedKwota !== 0) {
-                      gotoweTransakcje.push({ nazwa: parsedNazwa || 'Brak nazwy', kwota: Math.abs(parsedKwota), typ: parsedKwota > 0 ? 'przychod' : 'wydatek', kategoria: 'inne_wydatki', data_transakcji: parsedData, notatki: parsedNotatki });
+                      gotoweTransakcje.push({ nazwa: parsedNazwa || 'Brak nazwy', kwota: Math.abs(parsedKwota), typ: parsedKwota > 0 ? 'przychod' : 'wydatek', data_transakcji: parsedData, notatki: parsedNotatki });
                     }
                   } catch (err) {}
                 });
@@ -217,11 +245,20 @@ export default function TransactionsPage() {
       }
 
       if (gotoweTransakcje.length > 0) {
-        const { error } = await supabase.from('transactions').insert(gotoweTransakcje);
-        if (!error) {
-          alert(`Sukces! Zaimportowano ${gotoweTransakcje.length} transakcji.`);
-          setPlik(null); setIsImportModalOpen(false); mutate(); 
-        } else alert('Błąd bazy: ' + error.message);
+        const reguly = wczytajReguly();
+        // Ten sam dzień, kwota i typ co w bazie = prawdopodobnie już zaimportowane
+        const kluczDuplikatu = (data: string, kwota: number, typ: string) => `${data}|${kwota.toFixed(2)}|${typ}`;
+        const istniejace = new Set(transakcje.map(t => kluczDuplikatu(t.data_transakcji, Number(t.kwota), t.typ)));
+        setPodglad(gotoweTransakcje.map((t, i) => {
+          const duplikat = istniejace.has(kluczDuplikatu(t.data_transakcji, t.kwota, t.typ));
+          const kategoria = kategoryzuj(t.nazwa, t.opis ?? '', t.typ, reguly);
+          return {
+            id: i, nazwa: t.nazwa, kwota: t.kwota, typ: t.typ, kategoria, kategoriaAuto: kategoria,
+            data_transakcji: t.data_transakcji, notatki: t.notatki,
+            uwaga: t.wlasny ? 'Przelew własny' : duplikat ? 'Już w bazie' : '',
+            zaznaczona: !t.wlasny && !duplikat,
+          };
+        }));
       } else {
         alert('Nie udało się odczytać żadnych transakcji z tego pliku.');
       }
@@ -231,42 +268,49 @@ export default function TransactionsPage() {
     setIsImporting(false);
   };
 
-  const przefiltrowaneTransakcje = transakcje.filter((t: any) => {
-    const pasujeNazwa = t.nazwa.toLowerCase().includes(wyszukiwarka.toLowerCase());
-    const pasujeTyp = filtrTyp === 'wszystkie' || t.typ === filtrTyp;
-    const pasujeKategoria = filtrKategoria === 'wszystkie' || t.kategoria === filtrKategoria;
-    return pasujeNazwa && pasujeTyp && pasujeKategoria;
-  });
+  const zmienWierszImportu = (id: number, zmiany: Partial<WierszImportu>) => {
+    setPodglad(p => p && p.map(w => w.id === id ? { ...w, ...zmiany } : w));
+  };
+
+  const zamknijImport = () => { setIsImportModalOpen(false); setPodglad(null); };
+
+  const zatwierdzImport = async () => {
+    if (!podglad) return;
+    const doZapisu = podglad.filter(w => w.zaznaczona);
+    if (doZapisu.length === 0) return;
+    setIsImporting(true);
+    const { error } = await supabase.from('transactions').insert(
+      doZapisu.map(w => ({ nazwa: w.nazwa, kwota: w.kwota, typ: w.typ, kategoria: w.kategoria, data_transakcji: w.data_transakcji, notatki: w.notatki }))
+    );
+    setIsImporting(false);
+    if (error) { alert('Błąd bazy: ' + error.message); return; }
+
+    // Ręczne poprawki kategorii zapamiętujemy dla kolejnych importów
+    const nauczone: Record<string, string> = {};
+    doZapisu.filter(w => w.kategoria !== w.kategoriaAuto).forEach(w => { nauczone[`${w.typ}:${kluczKontrahenta(w.nazwa)}`] = w.kategoria; });
+    zapiszReguly(nauczone);
+
+    alert(`Sukces! Zaimportowano ${doZapisu.length} transakcji.`);
+    setPlik(null); zamknijImport(); mutate();
+  };
+
+  const przefiltrowaneTransakcje = useMemo(() => {
+    const fraza = szukanaFraza.toLowerCase();
+    return transakcje.filter(t => {
+      const pasujeNazwa = t.nazwa.toLowerCase().includes(fraza);
+      const pasujeTyp = filtrTyp === 'wszystkie' || t.typ === filtrTyp;
+      const pasujeKategoria = filtrKategoria === 'wszystkie' || t.kategoria === filtrKategoria;
+      return pasujeNazwa && pasujeTyp && pasujeKategoria;
+    });
+  }, [transakcje, szukanaFraza, filtrTyp, filtrKategoria]);
+
+  // Set zamiast includes() – sprawdzanie zaznaczenia w O(1) dla każdego wiersza
+  const zaznaczoneSet = useMemo(() => new Set(zaznaczoneId), [zaznaczoneId]);
+  const widoczneTransakcje = przefiltrowaneTransakcje.slice(0, ileWidocznych);
 
   const toggleZaznaczWszystkie = () => {
     if (zaznaczoneId.length === przefiltrowaneTransakcje.length) setZaznaczoneId([]);
-    else setZaznaczoneId(przefiltrowaneTransakcje.map((t: any) => t.id));
-  };
-
-  const getIcon = (typ: string, kat: string) => {
-    if (kat === 'wynagrodzenie') return '💰';
-    if (kat === 'freelance') return '💻';
-    if (kat === 'inwestycje') return '📈';
-    if (kat === 'inne_przychody') return '🎁';
-    if (typ === 'przychod') return '💵';
-
-    switch(kat) {
-      case 'jedzenie': return '🍕'; case 'transport': return '🚗'; case 'mieszkanie': return '🏠';
-      case 'rozrywka': return '🎮'; case 'zdrowie': return '💊'; case 'edukacja': return '📚'; 
-      case 'ubrania': return '👕'; case 'subskrypcje': return '📱'; case 'oszczednosci': return '🏦';
-      case 'inne_wydatki': return '📦'; default: return '💸';
-    }
-  };
-
-  const formatujNazweKategorii = (kat: string) => {
-    const nazwy: any = {
-      'jedzenie': 'Jedzenie', 'transport': 'Transport', 'mieszkanie': 'Mieszkanie',
-      'rozrywka': 'Rozrywka', 'zdrowie': 'Zdrowie', 'edukacja': 'Edukacja',
-      'ubrania': 'Ubrania', 'subskrypcje': 'Subskrypcje', 'oszczednosci': 'Oszczędności',
-      'inne_wydatki': 'Inne wydatki', 'wynagrodzenie': 'Wynagrodzenie', 'freelance': 'Freelance',
-      'inwestycje': 'Inwestycje', 'inne_przychody': 'Inne przychody'
-    };
-    return nazwy[kat] || kat;
+    else setZaznaczoneId(przefiltrowaneTransakcje.map(t => t.id));
   };
 
   return (
@@ -305,24 +349,19 @@ export default function TransactionsPage() {
       >
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input type="text" value={wyszukiwarka} onChange={(e) => setWyszukiwarka(e.target.value)} placeholder="Szukaj transakcji..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"/>
+          <input type="text" value={wyszukiwarka} onChange={(e) => { setWyszukiwarka(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} placeholder="Szukaj transakcji..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"/>
         </div>
         <div className="flex gap-4">
-          <select value={filtrTyp} onChange={(e) => setFiltrTyp(e.target.value)} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[140px] cursor-pointer">
+          <select value={filtrTyp} onChange={(e) => { setFiltrTyp(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[140px] cursor-pointer">
             <option value="wszystkie">Wszystkie</option><option value="przychod">Przychody</option><option value="wydatek">Wydatki</option>
           </select>
-          <select value={filtrKategoria} onChange={(e) => setFiltrKategoria(e.target.value)} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[180px] cursor-pointer capitalize">
+          <select value={filtrKategoria} onChange={(e) => { setFiltrKategoria(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[180px] cursor-pointer capitalize">
             <option value="wszystkie">Wszystkie kategorie</option>
             <optgroup label="Wydatki">
-              <option value="jedzenie">🍕 Jedzenie</option><option value="transport">🚗 Transport</option>
-              <option value="mieszkanie">🏠 Mieszkanie</option><option value="rozrywka">🎮 Rozrywka</option>
-              <option value="zdrowie">💊 Zdrowie</option><option value="edukacja">📚 Edukacja</option>
-              <option value="ubrania">👕 Ubrania</option><option value="subskrypcje">📱 Subskrypcje</option>
-              <option value="oszczednosci">🏦 Oszczędności</option><option value="inne_wydatki">📦 Inne wydatki</option>
+              {KATEGORIE_WYDATKOW.map(k => <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>)}
             </optgroup>
             <optgroup label="Przychody">
-              <option value="wynagrodzenie">💰 Wynagrodzenie</option><option value="freelance">💻 Freelance</option>
-              <option value="inwestycje">📈 Inwestycje</option><option value="inne_przychody">🎁 Inne przychody</option>
+              {KATEGORIE_PRZYCHODOW.map(k => <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>)}
             </optgroup>
           </select>
         </div>
@@ -365,18 +404,16 @@ export default function TransactionsPage() {
             <p className="font-medium text-lg">Brak transakcji</p>
           </div>
         ) : (
-          <AnimatePresence>
-            {przefiltrowaneTransakcje.map((t: any, i: number) => (
-              <motion.div 
+          <>
+            {widoczneTransakcje.map(t => {
+              const zaznaczona = zaznaczoneSet.has(t.id);
+              return (
+              <div 
                 key={t.id} 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.9, backgroundColor: "#fef2f2" }}
-                transition={{ duration: 0.3, delay: i * 0.05 > 1 ? 0 : i * 0.05 }}
-                className={`flex items-center justify-between p-4 rounded-2xl transition-all border group ${zaznaczoneId.includes(t.id) ? 'bg-violet-50/50 border-violet-100' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'}`}
+                className={`flex items-center justify-between p-4 rounded-2xl transition-colors border group ${zaznaczona ? 'bg-violet-50/50 border-violet-100' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'}`}
               >
                 <div className="flex items-center gap-4">
-                  <input type="checkbox" checked={zaznaczoneId.includes(t.id)} onChange={() => toggleZaznaczenie(t.id)} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6]" />
+                  <input type="checkbox" checked={zaznaczona} onChange={() => toggleZaznaczenie(t.id)} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6]" />
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>
                     {getIcon(t.typ, t.kategoria)}
                   </div>
@@ -398,9 +435,15 @@ export default function TransactionsPage() {
                     <Trash2 size={20} />
                   </button>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              </div>
+              );
+            })}
+            {przefiltrowaneTransakcje.length > ileWidocznych && (
+              <button onClick={() => setIleWidocznych(n => n + PORCJA_WIERSZY * 2)} className="w-full mt-4 py-3 rounded-xl border border-gray-200 font-bold text-slate-700 hover:bg-gray-50 transition-colors">
+                Pokaż więcej ({przefiltrowaneTransakcje.length - ileWidocznych} pozostało)
+              </button>
+            )}
+          </>
         )}
       </motion.div>
 
@@ -423,20 +466,9 @@ export default function TransactionsPage() {
                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Kategoria</label>
                        <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white">
                         <option value="">Wybierz</option>
-                        {transactionType === 'wydatek' ? (
-                          <>
-                            <option value="jedzenie">🍕 Jedzenie</option><option value="transport">🚗 Transport</option>
-                            <option value="mieszkanie">🏠 Mieszkanie</option><option value="rozrywka">🎮 Rozrywka</option>
-                            <option value="zdrowie">💊 Zdrowie</option><option value="edukacja">📚 Edukacja</option>
-                            <option value="ubrania">👕 Ubrania</option><option value="subskrypcje">📱 Subskrypcje</option>
-                            <option value="oszczednosci">🏦 Oszczędności</option><option value="inne_wydatki">📦 Inne wydatki</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="wynagrodzenie">💰 Wynagrodzenie</option><option value="freelance">💻 Freelance</option>
-                            <option value="inwestycje">📈 Inwestycje</option><option value="inne_przychody">🎁 Inne przychody</option>
-                          </>
-                        )}
+                        {(transactionType === 'wydatek' ? KATEGORIE_WYDATKOW : KATEGORIE_PRZYCHODOW).map(k => (
+                          <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>
+                        ))}
                       </select>
                      </div>
                      <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Data</label><input required value={dataTransakcji} onChange={(e) => setDataTransakcji(e.target.value)} type="date" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" /></div>
@@ -452,9 +484,45 @@ export default function TransactionsPage() {
       <AnimatePresence>
         {isImportModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsImportModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden relative z-10">
-              <div className="flex justify-between items-center p-6 border-b border-gray-100"><h2 className="text-2xl font-bold text-slate-900">Importuj wyciąg</h2><button onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button></div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={zamknijImport} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className={`bg-white rounded-[32px] shadow-2xl w-full ${podglad ? 'max-w-3xl' : 'max-w-md'} overflow-hidden relative z-10`}>
+              <div className="flex justify-between items-center p-6 border-b border-gray-100"><h2 className="text-2xl font-bold text-slate-900">{podglad ? 'Sprawdź kategorie' : 'Importuj wyciąg'}</h2><button onClick={zamknijImport} className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button></div>
+              {podglad ? (
+                <div className="p-6">
+                  <p className="text-sm text-gray-500 font-medium mb-4">
+                    Znaleziono {podglad.length} transakcji, do importu: <span className="font-bold text-slate-900">{podglad.filter(w => w.zaznaczona).length}</span>.
+                    Przelewy własne i pozycje, które już masz w bazie, są odznaczone. Zmienione kategorie zapamiętam na przyszłość.
+                  </p>
+                  <div className="max-h-[55vh] overflow-y-auto -mx-2 px-2 space-y-1">
+                    {podglad.map(w => (
+                      <div key={w.id} className={`flex items-center gap-3 p-2.5 rounded-xl border ${w.zaznaczona ? 'border-gray-100' : 'border-transparent opacity-50'}`}>
+                        <input type="checkbox" checked={w.zaznaczona} onChange={() => zmienWierszImportu(w.id, { zaznaczona: !w.zaznaczona })} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-900 truncate">{w.nazwa}</p>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {w.data_transakcji}
+                            {w.uwaga && <span className="ml-2 px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">{w.uwaga}</span>}
+                          </p>
+                        </div>
+                        <span className={`font-bold whitespace-nowrap ${w.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                          {w.typ === 'przychod' ? '+' : '-'}{formatujWalute(w.kwota)}
+                        </span>
+                        <select value={w.kategoria} onChange={(e) => zmienWierszImportu(w.id, { kategoria: e.target.value })} className="w-40 shrink-0 px-2 py-2 rounded-lg border border-gray-200 bg-white text-sm">
+                          {(w.typ === 'wydatek' ? KATEGORIE_WYDATKOW : KATEGORIE_PRZYCHODOW).map(k => (
+                            <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <button onClick={() => setPodglad(null)} className="px-5 py-3.5 rounded-xl border border-gray-200 font-bold text-slate-700 hover:bg-gray-50">Wstecz</button>
+                    <button onClick={zatwierdzImport} disabled={isImporting || !podglad.some(w => w.zaznaczona)} className="flex-1 bg-[#bfa8ff] hover:bg-[#a78bfa] text-white font-bold py-3.5 rounded-xl disabled:opacity-50">
+                      {isImporting ? 'Zapisywanie...' : `Importuj ${podglad.filter(w => w.zaznaczona).length} transakcji`}
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <div className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">1. Wybierz swój bank</label>
@@ -469,6 +537,7 @@ export default function TransactionsPage() {
                 )}
                 <button onClick={przetworzWyciag} disabled={!plik || !wybranyBank || isImporting} className="w-full mt-6 bg-[#bfa8ff] hover:bg-[#a78bfa] text-white font-bold py-3.5 rounded-xl disabled:opacity-50 flex justify-center items-center gap-2">{isImporting ? 'Przetwarzanie pliku...' : 'Rozpocznij import'}</button>
               </div>
+              )}
             </motion.div>
           </div>
         )}

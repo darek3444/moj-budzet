@@ -8,12 +8,7 @@ export default function SidebarUser() {
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Pobieramy użytkownika przy pierwszym załadowaniu
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setEmail(user?.email ?? null);
-    });
-
-    // 2. NASŁUCHUJEMY ZMIAN! Jak tylko ktoś się zaloguje/wyloguje, aktualizujemy stan.
+    // onAuthStateChange od razu zwraca bieżącą sesję (INITIAL_SESSION), więc osobne getUser() jest zbędne
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
     });

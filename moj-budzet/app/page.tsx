@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase'; 
-import useSWR from 'swr'; 
+import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { supabase } from '../lib/supabase';
+import { useTransakcje } from '../lib/useTransakcje';
+import { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, getCategoryColor, formatujNazweKategorii, formatujWalute, dzisiaj, prefiksMiesiaca } from '../lib/budzet';
 import { Plus, Wallet, TrendingUp, TrendingDown, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion'; 
+import { motion, AnimatePresence } from 'framer-motion';
+
+const WykresSlupkowy = dynamic(() => import('../components/WykresSlupkowy'), { ssr: false });
 
 const nazwyMiesiecy = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
 
-const fetcher = async () => {
-  const { data } = await supabase.from('transactions').select('*').order('data_transakcji', { ascending: false });
-  return data || [];
-};
-
 export default function Home() {
-  const { data: wszystkieTransakcje = [], mutate, isLoading } = useSWR('dane_budzetu', fetcher);
+  const { data: wszystkieTransakcje = [], mutate, isLoading } = useTransakcje();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState('wydatek');
@@ -24,30 +22,22 @@ export default function Home() {
   const [miesiac, setMiesiac] = useState(new Date().getMonth());
   const [rok, setRok] = useState(new Date().getFullYear());
 
-  const [przychody, setPrzychody] = useState(0);
-  const [wydatki, setWydatki] = useState(0);
-  const [listaZMiesiaca, setListaZMiesiaca] = useState<any[]>([]);
-  const [daneKategorii, setDaneKategorii] = useState<any[]>([]);
-
   const [nazwa, setNazwa] = useState('');
   const [kwota, setKwota] = useState('');
   const [kategoria, setKategoria] = useState('');
   const [notatki, setNotatki] = useState('');
-  const [dataTransakcji, setDataTransakcji] = useState(new Date().toISOString().split('T')[0]);
+  const [dataTransakcji, setDataTransakcji] = useState(dzisiaj);
 
-  useEffect(() => {
-    if (!wszystkieTransakcje) return;
-
+  // Liczone w trakcie renderu zamiast useEffect + setState (bez dodatkowego przerenderowania)
+  const { przychody, wydatki, listaZMiesiaca, daneKategorii } = useMemo(() => {
     let sumaPrzychody = 0;
     let sumaWydatki = 0;
     const wydatkiTemp: Record<string, number> = {};
+    const prefiks = prefiksMiesiaca(rok, miesiac);
 
-    const przefiltrowane = wszystkieTransakcje.filter((t: any) => {
-      const dataT = new Date(t.data_transakcji);
-      return dataT.getMonth() === miesiac && dataT.getFullYear() === rok;
-    });
+    const przefiltrowane = wszystkieTransakcje.filter(t => t.data_transakcji.startsWith(prefiks));
 
-    przefiltrowane.forEach((t: any) => {
+    przefiltrowane.forEach(t => {
       const kwotaNum = Number(t.kwota);
       if (t.typ === 'przychod') {
         sumaPrzychody += kwotaNum;
@@ -58,17 +48,13 @@ export default function Home() {
       }
     });
 
-    setPrzychody(sumaPrzychody);
-    setWydatki(sumaWydatki);
-    setListaZMiesiaca(przefiltrowane);
-
     const kategoriaArray = Object.keys(wydatkiTemp).map(klucz => ({
       nazwa: klucz,
       kwota: wydatkiTemp[klucz],
       procent: sumaWydatki > 0 ? Math.round((wydatkiTemp[klucz] / sumaWydatki) * 100) : 0
     })).sort((a, b) => b.kwota - a.kwota);
 
-    setDaneKategorii(kategoriaArray);
+    return { przychody: sumaPrzychody, wydatki: sumaWydatki, listaZMiesiaca: przefiltrowane, daneKategorii: kategoriaArray };
   }, [miesiac, rok, wszystkieTransakcje]);
 
   const zmienMiesiac = (kierunek: number) => {
@@ -93,51 +79,9 @@ export default function Home() {
     }
   };
 
-  const getIcon = (typ: string, kat: string) => {
-    if (kat === 'wynagrodzenie') return '💰';
-    if (kat === 'freelance') return '💻';
-    if (kat === 'inwestycje') return '📈';
-    if (kat === 'inne_przychody') return '🎁';
-    if (typ === 'przychod') return '💵';
-
-    switch(kat) {
-      case 'jedzenie': return '🍕'; case 'transport': return '🚗'; case 'mieszkanie': return '🏠';
-      case 'rozrywka': return '🎮'; case 'zdrowie': return '💊'; case 'edukacja': return '📚'; 
-      case 'ubrania': return '👕'; case 'subskrypcje': return '📱'; case 'oszczednosci': return '🏦';
-      case 'inne_wydatki': return '📦'; default: return '💸';
-    }
-  };
-
-  const getCategoryColor = (kat: string) => {
-    switch(kat) {
-      case 'jedzenie': return 'bg-[#f59e0b]'; case 'transport': return 'bg-[#3b82f6]';
-      case 'mieszkanie': return 'bg-[#10b981]'; case 'rozrywka': return 'bg-[#8b5cf6]';
-      case 'zdrowie': return 'bg-[#ef4444]'; case 'edukacja': return 'bg-[#3b82f6]';
-      case 'ubrania': return 'bg-[#ec4899]'; case 'subskrypcje': return 'bg-[#14b8a6]';
-      case 'oszczednosci': return 'bg-[#eab308]'; case 'inne_wydatki': return 'bg-[#64748b]';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  // Funkcja ładnie formatująca nazwy (żeby usunąć podłogi w inne_wydatki)
-  const formatujNazweKategorii = (kat: string) => {
-    const nazwy: any = {
-      'jedzenie': 'Jedzenie', 'transport': 'Transport', 'mieszkanie': 'Mieszkanie',
-      'rozrywka': 'Rozrywka', 'zdrowie': 'Zdrowie', 'edukacja': 'Edukacja',
-      'ubrania': 'Ubrania', 'subskrypcje': 'Subskrypcje', 'oszczednosci': 'Oszczędności',
-      'inne_wydatki': 'Inne wydatki', 'wynagrodzenie': 'Wynagrodzenie', 'freelance': 'Freelance',
-      'inwestycje': 'Inwestycje', 'inne_przychody': 'Inne przychody'
-    };
-    return nazwy[kat] || kat;
-  };
-
   const chartData = [
     { nazwa: `${nazwyMiesiecy[miesiac]} ${rok}`, Przychody: przychody, Wydatki: wydatki }
   ];
-
-  const formatujWalute = (wartosc: number) => {
-    return `${wartosc.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
-  };
 
   if (isLoading) {
     return (
@@ -282,17 +226,7 @@ export default function Home() {
       >
         <h2 className="text-xl font-extrabold text-slate-900 mb-8">Porównanie: {nazwyMiesiecy[miesiac]} {rok}</h2>
         <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barSize={60}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="nazwa" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 14, fontWeight: 500}} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-              <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} formatter={(value: any) => [formatujWalute(Number(value)), '']}/>
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-              <Bar dataKey="Przychody" fill="#10b981" radius={[8, 8, 8, 8]} />
-              <Bar dataKey="Wydatki" fill="#ef4444" radius={[8, 8, 8, 8]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <WykresSlupkowy data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barSize={60} radius={8} kolorPrzychodow="#10b981" rozmiarOsiX={14} />
         </div>
       </motion.div>
 
@@ -315,20 +249,9 @@ export default function Home() {
                       <label className="block text-sm font-bold text-gray-700 mb-1.5">Kategoria</label>
                       <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none bg-white">
                         <option value="">Wybierz</option>
-                        {transactionType === 'wydatek' ? (
-                          <>
-                            <option value="jedzenie">🍕 Jedzenie</option><option value="transport">🚗 Transport</option>
-                            <option value="mieszkanie">🏠 Mieszkanie</option><option value="rozrywka">🎮 Rozrywka</option>
-                            <option value="zdrowie">💊 Zdrowie</option><option value="edukacja">📚 Edukacja</option>
-                            <option value="ubrania">👕 Ubrania</option><option value="subskrypcje">📱 Subskrypcje</option>
-                            <option value="oszczednosci">🏦 Oszczędności</option><option value="inne_wydatki">📦 Inne wydatki</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="wynagrodzenie">💰 Wynagrodzenie</option><option value="freelance">💻 Freelance</option>
-                            <option value="inwestycje">📈 Inwestycje</option><option value="inne_przychody">🎁 Inne przychody</option>
-                          </>
-                        )}
+                        {(transactionType === 'wydatek' ? KATEGORIE_WYDATKOW : KATEGORIE_PRZYCHODOW).map(k => (
+                          <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>
+                        ))}
                       </select>
                     </div>
                     <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Data</label><input required value={dataTransakcji} onChange={(e) => setDataTransakcji(e.target.value)} type="date" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" /></div>

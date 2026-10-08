@@ -3,10 +3,11 @@ import "./globals.css";
 import Link from "next/link";
 import { LayoutDashboard, ArrowRightLeft, PieChart, Settings } from 'lucide-react';
 import AuthGuard from './AuthGuard';
-import SidebarUser from './SidebarUser'; 
+import SidebarUser from './SidebarUser';
+import Logo from '../components/Logo';
 
 export const metadata: Metadata = {
-  title: "Budżet App",
+  title: "Mój Budżet",
   description: "Twój osobisty menedżer finansów",
 };
 
@@ -23,10 +24,8 @@ export default function RootLayout({
           {/* LEWE MENU - dodano pb-12 (padding-bottom) żeby podnieść zawartość */}
           <aside className="w-64 bg-white border-r border-gray-100 p-6 pb-12 hidden md:flex flex-col h-screen sticky top-0 z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-xl font-bold text-xl">
-                B
-              </div>
-              <span className="font-bold text-2xl tracking-tight">Budżet</span>
+              <Logo size={40} />
+              <span className="font-bold text-2xl tracking-tight">Mój Budżet</span>
             </div>
 
             <nav className="space-y-2 flex-1">

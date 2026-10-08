@@ -1,111 +1,74 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
-import useSWR from 'swr';
+import dynamic from 'next/dynamic';
+import { useTransakcje } from '../../lib/useTransakcje';
+import { getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, PiggyBank, BarChart3, Clock, Loader2, Calendar } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const fetcher = async () => {
-  const { data } = await supabase.from('transactions').select('*').order('data_transakcji', { ascending: false });
-  return data || [];
-};
+const WykresSlupkowy = dynamic(() => import('../../components/WykresSlupkowy'), { ssr: false });
+
+const nazwyMsc = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
 
 export default function SummaryPage() {
-  const { data: transakcje = [], isLoading } = useSWR('dane_podsumowania', fetcher);
+  const { data: transakcje = [], isLoading } = useTransakcje();
   
   const [okres, setOkres] = useState('biezacy_rok'); 
   const [dataOd, setDataOd] = useState('');
   const [dataDo, setDataDo] = useState('');
 
-  const formatujWalute = (wartosc: number) => {
-    return `${wartosc.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł`;
-  };
-
-  const getIcon = (kat: string) => {
-    switch(kat) {
-      case 'jedzenie': return '🍕'; case 'transport': return '🚗'; case 'mieszkanie': return '🏠';
-      case 'rozrywka': return '🎮'; case 'zdrowie': return '💊'; case 'edukacja': return '📚'; 
-      case 'ubrania': return '👕'; case 'subskrypcje': return '📱'; case 'oszczednosci': return '🏦';
-      case 'inne_wydatki': return '📦'; case 'wynagrodzenie': return '💰'; case 'freelance': return '💻';
-      case 'inwestycje': return '📈'; case 'inne_przychody': return '🎁'; default: return '💸';
-    }
-  };
-
-  const formatujNazweKategorii = (kat: string) => {
-    const nazwy: any = {
-      'jedzenie': 'Jedzenie', 'transport': 'Transport', 'mieszkanie': 'Mieszkanie',
-      'rozrywka': 'Rozrywka', 'zdrowie': 'Zdrowie', 'edukacja': 'Edukacja',
-      'ubrania': 'Ubrania', 'subskrypcje': 'Subskrypcje', 'oszczednosci': 'Oszczędności',
-      'inne_wydatki': 'Inne', 'wynagrodzenie': 'Wynagrodzenie', 'freelance': 'Freelance',
-      'inwestycje': 'Inwestycje', 'inne_przychody': 'Inne przychody'
-    };
-    return nazwy[kat] || kat;
-  };
-
-  // NAPRAWIONE FILTROWANIE DAT
+  // Daty to stringi YYYY-MM-DD, więc porównujemy je bezpośrednio, bez tworzenia obiektów Date
   const przefiltrowaneTransakcje = useMemo(() => {
-    const dzis = new Date();
-    return transakcje.filter((t: any) => {
-      const dataT = new Date(t.data_transakcji);
-      if (okres === 'biezacy_miesiac') {
-        return dataT.getMonth() === dzis.getMonth() && dataT.getFullYear() === dzis.getFullYear();
-      } else if (okres === 'biezacy_rok') {
-        return dataT.getFullYear() === dzis.getFullYear();
-      } else if (okres === 'niestandardowy') {
+    const dzis = dzisiaj();
+    return transakcje.filter(t => {
+      const d = t.data_transakcji;
+      if (okres === 'biezacy_miesiac') return d.startsWith(dzis.slice(0, 7));
+      if (okres === 'biezacy_rok') return d.startsWith(dzis.slice(0, 4));
+      if (okres === 'niestandardowy') {
         if (!dataOd || !dataDo) return true; // Jak ktoś nie wpisał jeszcze dat, pokazujemy wszystko
-        const odDaty = new Date(dataOd);
-        const doDaty = new Date(dataDo);
-        doDaty.setHours(23, 59, 59, 999); // Ustawiamy na sam koniec dnia
-        return dataT >= odDaty && dataT <= doDaty;
+        return d >= dataOd && d <= dataDo;
       }
       return true;
     });
   }, [transakcje, okres, dataOd, dataDo]);
 
-  // Obliczenia główne
-  const { przychody, wydatki, kategorieWydatkow } = useMemo(() => {
-    let p = 0; let w = 0;
+  // Obliczenia główne + dane do wykresu w jednym przejściu
+  const { przychody, wydatki, liczbaPrzychodow, liczbaWydatkow, kategorieWydatkow, liczbaMiesiecy, chartData } = useMemo(() => {
+    let p = 0; let w = 0; let lp = 0; let lw = 0;
     const katMap: Record<string, number> = {};
+    const miesiace: Record<string, { nazwa: string; Przychody: number; Wydatki: number }> = {};
 
-    przefiltrowaneTransakcje.forEach((t: any) => {
+    przefiltrowaneTransakcje.forEach(t => {
       const kwota = Number(t.kwota);
-      if (t.typ === 'przychod') p += kwota;
-      else if (t.typ === 'wydatek') {
-        w += kwota;
-        const k = t.kategoria || 'inne_wydatki';
-        katMap[k] = (katMap[k] || 0) + kwota;
+      const klucz = t.data_transakcji.substring(0, 7);
+      if (!miesiace[klucz]) {
+        const [r, m] = klucz.split('-');
+        miesiace[klucz] = { nazwa: `${nazwyMsc[Number(m) - 1]} ${r}`, Przychody: 0, Wydatki: 0 };
+      }
+
+      if (t.typ === 'przychod') { p += kwota; lp++; miesiace[klucz].Przychody += kwota; }
+      else {
+        miesiace[klucz].Wydatki += kwota;
+        if (t.typ === 'wydatek') {
+          w += kwota; lw++;
+          const k = t.kategoria || 'inne_wydatki';
+          katMap[k] = (katMap[k] || 0) + kwota;
+        }
       }
     });
 
     const katArr = Object.keys(katMap).map(k => ({ nazwa: k, kwota: katMap[k] })).sort((a, b) => b.kwota - a.kwota);
-    return { przychody: p, wydatki: w, kategorieWydatkow: katArr };
+    const klucze = Object.keys(miesiace).sort();
+    return {
+      przychody: p, wydatki: w, liczbaPrzychodow: lp, liczbaWydatkow: lw, kategorieWydatkow: katArr,
+      liczbaMiesiecy: klucze.length || 1,
+      chartData: klucze.map(k => miesiace[k]),
+    };
   }, [przefiltrowaneTransakcje]);
 
   const bilans = przychody - wydatki;
   
-  // Obliczanie unikalnych miesięcy do średniej
-  const unikalneMiesiace = new Set(przefiltrowaneTransakcje.map((t: any) => t.data_transakcji.substring(0, 7))).size;
-  const liczbaMiesiecy = unikalneMiesiace > 0 ? unikalneMiesiace : 1;
-
-  // Dane do wykresu (grupowanie po miesiącach)
-  const chartData = useMemo(() => {
-    const map: Record<string, any> = {};
-    const nazwyMsc = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
-    
-    przefiltrowaneTransakcje.forEach((t: any) => {
-      const d = new Date(t.data_transakcji);
-      const klucz = `${nazwyMsc[d.getMonth()]} ${d.getFullYear()}`;
-      if (!map[klucz]) map[klucz] = { nazwa: klucz, Przychody: 0, Wydatki: 0, sortDate: d.getTime() };
-      
-      if (t.typ === 'przychod') map[klucz].Przychody += Number(t.kwota);
-      else map[klucz].Wydatki += Number(t.kwota);
-    });
-
-    return Object.values(map).sort((a: any, b: any) => a.sortDate - b.sortDate);
-  }, [przefiltrowaneTransakcje]);
-
   if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
 
   return (
@@ -147,8 +110,8 @@ export default function SummaryPage() {
       {/* 4 KARTY */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { tytul: 'PRZYCHODY', kwota: przychody, podtytul: `${przefiltrowaneTransakcje.filter((t:any)=>t.typ==='przychod').length} transakcji`, ikona: <TrendingUp size={20} />, bg: 'bg-[#22c55e]' },
-          { tytul: 'WYDATKI', kwota: wydatki, podtytul: `${przefiltrowaneTransakcje.filter((t:any)=>t.typ==='wydatek').length} transakcji`, ikona: <TrendingDown size={20} />, bg: 'bg-[#ef4444]' },
+          { tytul: 'PRZYCHODY', kwota: przychody, podtytul: `${liczbaPrzychodow} transakcji`, ikona: <TrendingUp size={20} />, bg: 'bg-[#22c55e]' },
+          { tytul: 'WYDATKI', kwota: wydatki, podtytul: `${liczbaWydatkow} transakcji`, ikona: <TrendingDown size={20} />, bg: 'bg-[#ef4444]' },
           { tytul: 'BILANS', kwota: bilans, podtytul: bilans >= 0 ? 'Nadwyżka' : 'Deficyt', ikona: <PiggyBank size={20} />, bg: 'bg-[#1e293b]' },
           { tytul: 'WYDATKI / MIESIĘCZNIE', kwota: wydatki / liczbaMiesiecy, podtytul: `Z ${liczbaMiesiecy} aktywnych miesięcy`, ikona: <BarChart3 size={20} />, bg: 'bg-[#8b5cf6]' }
         ].map((karta, index) => (
@@ -206,7 +169,7 @@ export default function SummaryPage() {
                   key={index} className="flex items-center justify-between p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-xl transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="text-2xl">{getIcon(kat.nazwa)}</div>
+                    <div className="text-2xl">{getIcon('wydatek', kat.nazwa)}</div>
                     <div>
                       <p className="font-bold text-slate-900">{formatujNazweKategorii(kat.nazwa)}</p>
                       <p className="text-xs text-gray-400 font-medium">średnio na miesiąc</p>
@@ -230,17 +193,7 @@ export default function SummaryPage() {
         <h2 className="text-xl font-extrabold text-slate-900 mb-8">Wykres Miesięczny</h2>
         <div className="h-80 w-full">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="nazwa" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 13, fontWeight: 500}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(val) => `${val} zł`} />
-                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} formatter={(value: any) => [formatujWalute(Number(value)), '']} />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="Przychody" fill="#22c55e" radius={[6, 6, 6, 6]} />
-                <Bar dataKey="Wydatki" fill="#ef4444" radius={[6, 6, 6, 6]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <WykresSlupkowy data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40} radius={6} kolorPrzychodow="#22c55e" rozmiarOsiX={13} formatOsiY={(val) => `${val} zł`} />
           ) : (
             <div className="flex justify-center items-center h-full text-gray-400 font-medium">Brak danych do wyświetlenia</div>
           )}

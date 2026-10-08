@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import Logo from '../../components/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -59,8 +60,8 @@ export default function LoginPage() {
         className="bg-white p-8 md:p-10 rounded-[32px] shadow-xl w-full max-w-md border border-gray-100 overflow-hidden"
       >
         <motion.div layout className="flex justify-center mb-6">
-          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg">
-            <Wallet size={32} />
+          <div className="rounded-2xl shadow-lg">
+            <Logo size={64} />
           </div>
         </motion.div>
         
