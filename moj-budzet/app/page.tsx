@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../lib/supabase';
 import { useTransakcje } from '../lib/useTransakcje';
-import { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, getCategoryColor, formatujNazweKategorii, formatujWalute, dzisiaj, prefiksMiesiaca } from '../lib/budzet';
+import { formatujWalute, dzisiaj, prefiksMiesiaca } from '../lib/budzet';
+import { useKategorie } from '../components/KategorieProvider';
 import { Plus, Wallet, TrendingUp, TrendingDown, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,6 +15,7 @@ const nazwyMiesiecy = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwi
 
 export default function Home() {
   const { data: wszystkieTransakcje = [], mutate, isLoading } = useTransakcje();
+  const { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, getCategoryColor, formatujNazweKategorii } = useKategorie();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState('wydatek');
@@ -208,7 +210,8 @@ export default function Home() {
                       initial={{ width: 0 }}
                       animate={{ width: `${kat.procent}%` }}
                       transition={{ duration: 1, ease: "easeOut" }}
-                      className={`${getCategoryColor(kat.nazwa)} h-3 rounded-full`} 
+                      style={{ backgroundColor: getCategoryColor(kat.nazwa) }}
+                      className="h-3 rounded-full"
                     />
                   </div>
                 </motion.div>

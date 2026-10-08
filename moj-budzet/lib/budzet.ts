@@ -8,42 +8,70 @@ export type Transakcja = {
   notatki: string | null;
 };
 
-type Kategoria = { id: string; nazwa: string; ikona: string; kolor: string; typ: 'przychod' | 'wydatek' };
+export type Kategoria = {
+  id: string;
+  nazwa: string;
+  ikona: string;
+  kolor: string; // hex
+  typ: 'przychod' | 'wydatek';
+  slowa?: string[]; // słowa kluczowe do automatycznej kategoryzacji (własne kategorie)
+};
 
 export const KATEGORIE_WYDATKOW: Kategoria[] = [
-  { id: 'jedzenie', nazwa: 'Jedzenie', ikona: '🍕', kolor: 'bg-[#f59e0b]', typ: 'wydatek' },
-  { id: 'transport', nazwa: 'Transport', ikona: '🚗', kolor: 'bg-[#3b82f6]', typ: 'wydatek' },
-  { id: 'mieszkanie', nazwa: 'Mieszkanie', ikona: '🏠', kolor: 'bg-[#10b981]', typ: 'wydatek' },
-  { id: 'rozrywka', nazwa: 'Rozrywka', ikona: '🎮', kolor: 'bg-[#8b5cf6]', typ: 'wydatek' },
-  { id: 'zdrowie', nazwa: 'Zdrowie', ikona: '💊', kolor: 'bg-[#ef4444]', typ: 'wydatek' },
-  { id: 'edukacja', nazwa: 'Edukacja', ikona: '📚', kolor: 'bg-[#3b82f6]', typ: 'wydatek' },
-  { id: 'ubrania', nazwa: 'Ubrania', ikona: '👕', kolor: 'bg-[#ec4899]', typ: 'wydatek' },
-  { id: 'subskrypcje', nazwa: 'Subskrypcje', ikona: '📱', kolor: 'bg-[#14b8a6]', typ: 'wydatek' },
-  { id: 'oszczednosci', nazwa: 'Oszczędności', ikona: '🏦', kolor: 'bg-[#eab308]', typ: 'wydatek' },
-  { id: 'inne_wydatki', nazwa: 'Inne wydatki', ikona: '📦', kolor: 'bg-[#64748b]', typ: 'wydatek' },
+  { id: 'jedzenie', nazwa: 'Jedzenie', ikona: '🍕', kolor: '#f59e0b', typ: 'wydatek' },
+  { id: 'transport', nazwa: 'Transport', ikona: '🚗', kolor: '#3b82f6', typ: 'wydatek' },
+  { id: 'mieszkanie', nazwa: 'Mieszkanie', ikona: '🏠', kolor: '#10b981', typ: 'wydatek' },
+  { id: 'rozrywka', nazwa: 'Rozrywka', ikona: '🎮', kolor: '#8b5cf6', typ: 'wydatek' },
+  { id: 'zdrowie', nazwa: 'Zdrowie', ikona: '💊', kolor: '#ef4444', typ: 'wydatek' },
+  { id: 'uroda', nazwa: 'Uroda i drogeria', ikona: '💄', kolor: '#f472b6', typ: 'wydatek' },
+  { id: 'sport', nazwa: 'Sport', ikona: '🏃', kolor: '#22c55e', typ: 'wydatek' },
+  { id: 'edukacja', nazwa: 'Edukacja', ikona: '📚', kolor: '#0ea5e9', typ: 'wydatek' },
+  { id: 'ubrania', nazwa: 'Ubrania', ikona: '👕', kolor: '#ec4899', typ: 'wydatek' },
+  { id: 'elektronika', nazwa: 'Elektronika', ikona: '🔌', kolor: '#06b6d4', typ: 'wydatek' },
+  { id: 'zwierzeta', nazwa: 'Zwierzęta', ikona: '🐾', kolor: '#a16207', typ: 'wydatek' },
+  { id: 'subskrypcje', nazwa: 'Subskrypcje i telefon', ikona: '📱', kolor: '#14b8a6', typ: 'wydatek' },
+  { id: 'ubezpieczenia', nazwa: 'Ubezpieczenia', ikona: '🛡️', kolor: '#6366f1', typ: 'wydatek' },
+  { id: 'przelewy', nazwa: 'Przelewy do znajomych', ikona: '👥', kolor: '#94a3b8', typ: 'wydatek' },
+  { id: 'oszczednosci', nazwa: 'Oszczędności', ikona: '🏦', kolor: '#eab308', typ: 'wydatek' },
+  { id: 'inne_wydatki', nazwa: 'Inne wydatki', ikona: '📦', kolor: '#64748b', typ: 'wydatek' },
 ];
 
 export const KATEGORIE_PRZYCHODOW: Kategoria[] = [
-  { id: 'wynagrodzenie', nazwa: 'Wynagrodzenie', ikona: '💰', kolor: 'bg-gray-400', typ: 'przychod' },
-  { id: 'freelance', nazwa: 'Freelance', ikona: '💻', kolor: 'bg-gray-400', typ: 'przychod' },
-  { id: 'inwestycje', nazwa: 'Inwestycje', ikona: '📈', kolor: 'bg-gray-400', typ: 'przychod' },
-  { id: 'inne_przychody', nazwa: 'Inne przychody', ikona: '🎁', kolor: 'bg-gray-400', typ: 'przychod' },
+  { id: 'wynagrodzenie', nazwa: 'Wynagrodzenie', ikona: '💰', kolor: '#16a34a', typ: 'przychod' },
+  { id: 'freelance', nazwa: 'Freelance', ikona: '💻', kolor: '#0d9488', typ: 'przychod' },
+  { id: 'inwestycje', nazwa: 'Inwestycje i odsetki', ikona: '📈', kolor: '#2563eb', typ: 'przychod' },
+  { id: 'inne_przychody', nazwa: 'Inne przychody', ikona: '🎁', kolor: '#9ca3af', typ: 'przychod' },
 ];
 
-const MAPA_KATEGORII: Record<string, Kategoria> = Object.fromEntries(
-  [...KATEGORIE_WYDATKOW, ...KATEGORIE_PRZYCHODOW].map(k => [k.id, k])
-);
+export const KATEGORIE_DOMYSLNE = [...KATEGORIE_WYDATKOW, ...KATEGORIE_PRZYCHODOW];
 
-export const getIcon = (typ: string, kat: string | null) => {
-  const k = kat ? MAPA_KATEGORII[kat] : undefined;
-  // Przychód z kategorią wydatkową dostaje ogólną ikonę przychodu
-  if (k && (k.typ === 'przychod' || typ !== 'przychod')) return k.ikona;
-  return typ === 'przychod' ? '💵' : '💸';
-};
+// Pomocnicy dla zestawu kategorii: wbudowane + własne użytkownika.
+// "Inne" zostają zawsze na końcu listy.
+export function zbudujKategorie(wlasne: Kategoria[]) {
+  const zTypu = (typ: Kategoria['typ'], wbudowane: Kategoria[]) => {
+    const inne = wbudowane[wbudowane.length - 1];
+    return [...wbudowane.slice(0, -1), ...wlasne.filter(k => k.typ === typ), inne];
+  };
+  const wydatki = zTypu('wydatek', KATEGORIE_WYDATKOW);
+  const przychody = zTypu('przychod', KATEGORIE_PRZYCHODOW);
+  const mapa: Record<string, Kategoria> = Object.fromEntries([...wydatki, ...przychody].map(k => [k.id, k]));
 
-export const getCategoryColor = (kat: string) => MAPA_KATEGORII[kat]?.kolor ?? 'bg-gray-400';
+  return {
+    KATEGORIE_WYDATKOW: wydatki,
+    KATEGORIE_PRZYCHODOW: przychody,
+    wlasne,
+    getIcon: (typ: string, kat: string | null) => {
+      const k = kat ? mapa[kat] : undefined;
+      // Przychód z kategorią wydatkową dostaje ogólną ikonę przychodu
+      if (k && (k.typ === 'przychod' || typ !== 'przychod')) return k.ikona;
+      return typ === 'przychod' ? '💵' : '💸';
+    },
+    getCategoryColor: (kat: string) => mapa[kat]?.kolor ?? '#9ca3af',
+    formatujNazweKategorii: (kat: string | null) => (kat && mapa[kat]?.nazwa) || kat || '',
+  };
+}
 
-export const formatujNazweKategorii = (kat: string | null) => (kat && MAPA_KATEGORII[kat]?.nazwa) || kat || '';
+export type Kategorie = ReturnType<typeof zbudujKategorie>;
 
 // Jeden formatter zamiast tworzenia nowego przy każdym toLocaleString
 const formatterPLN = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -5,6 +5,7 @@ import { LayoutDashboard, ArrowRightLeft, PieChart, Settings } from 'lucide-reac
 import AuthGuard from './AuthGuard';
 import SidebarUser from './SidebarUser';
 import Logo from '../components/Logo';
+import { KategorieProvider } from '../components/KategorieProvider';
 
 export const metadata: Metadata = {
   title: "Mój Budżet",
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="antialiased min-h-screen bg-[#fafafa] flex font-sans text-slate-900">
         
         <AuthGuard>
+        <KategorieProvider>
           {/* LEWE MENU - dodano pb-12 (padding-bottom) żeby podnieść zawartość */}
           <aside className="w-64 bg-white border-r border-gray-100 p-6 pb-12 hidden md:flex flex-col h-screen sticky top-0 z-10">
             <div className="flex items-center gap-3 mb-10">
@@ -52,6 +54,7 @@ export default function RootLayout({
           <div className="flex-1 overflow-y-auto w-full">
             {children}
           </div>
+        </KategorieProvider>
         </AuthGuard>
 
       </body>

@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useTransakcje } from '../../lib/useTransakcje';
-import { getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
+import { formatujWalute, dzisiaj } from '../../lib/budzet';
+import { useKategorie } from '../../components/KategorieProvider';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, PiggyBank, BarChart3, Clock, Loader2, Calendar } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const nazwyMsc = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz',
 
 export default function SummaryPage() {
   const { data: transakcje = [], isLoading } = useTransakcje();
+  const { getIcon, formatujNazweKategorii } = useKategorie();
   
   const [okres, setOkres] = useState('biezacy_rok'); 
   const [dataOd, setDataOd] = useState('');

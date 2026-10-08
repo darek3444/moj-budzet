@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useTransakcje } from '../../lib/useTransakcje';
-import { KATEGORIE_WYDATKOW, getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
+import { formatujWalute, dzisiaj } from '../../lib/budzet';
+import { useKategorie } from '../../components/KategorieProvider';
+import WlasneKategorie from '../../components/WlasneKategorie';
+import PorzadkowanieKategorii from '../../components/PorzadkowanieKategorii';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Download, Settings, Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
   // Transakcje potrzebne tylko do eksportu – strona nie czeka na nie z renderem
   const { data: transakcje = [], isLoading } = useTransakcje();
+  const { KATEGORIE_WYDATKOW, getIcon, formatujNazweKategorii } = useKategorie();
   
   // Limity trzymamy lokalnie w przeglądarce!
   const [limity, setLimity] = useState<any[]>([]);
@@ -191,6 +195,10 @@ export default function SettingsPage() {
             )}
           </div>
         </motion.div>
+
+        <WlasneKategorie />
+
+        <PorzadkowanieKategorii />
 
         {/* EKSPORT DANYCH */}
         <motion.div 

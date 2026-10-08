@@ -3,14 +3,17 @@
 import { useState, useMemo, useDeferredValue } from 'react';
 import { supabase } from '../../lib/supabase'; 
 import { useTransakcje } from '../../lib/useTransakcje';
-import { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, formatujNazweKategorii, formatujWalute, dzisiaj } from '../../lib/budzet';
+import { formatujWalute, dzisiaj } from '../../lib/budzet';
+import { useKategorie } from '../../components/KategorieProvider';
 import { parsujListeIng, wlascicielIng, czyPrzelewWlasny, nazwaTransakcji, type StronaPdf } from '../../lib/importIng';
-import { kategoryzuj, kluczKontrahenta, wczytajReguly, zapiszReguly } from '../../lib/kategoryzacja';
+import { kategoryzuj, kluczReguly } from '../../lib/kategoryzacja';
 import { Plus, Search, X, UploadCloud, Trash2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Ile wierszy renderujemy naraz – reszta po kliknięciu "Pokaż więcej"
 const PORCJA_WIERSZY = 50;
+// Kwoty powyżej progu w podglądzie importu są odznaczone do ręcznego sprawdzenia
+const PODEJRZANA_KWOTA = 50000;
 
 type WierszImportu = {
   id: number;
@@ -27,6 +30,7 @@ type WierszImportu = {
 
 export default function TransactionsPage() {
   const { data: transakcje = [], mutate, isLoading } = useTransakcje();
+  const { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, formatujNazweKategorii, wlasne, reguly, dodajReguly } = useKategorie();
 
   const [wyszukiwarka, setWyszukiwarka] = useState('');
   const szukanaFraza = useDeferredValue(wyszukiwarka);
@@ -166,7 +170,8 @@ export default function TransactionsPage() {
 
         bloki.forEach(blok => {
           const dateMatch = blok.match(/^(\d{2}\.\d{2}\.\d{4})/);
-          const amountMatch = blok.match(/(-?\s*\d{1,3}(?:[\s\u00A0]\d{3})*,\d{2})\s+PLN/);
+          // Lookbehind: kwota nie może być doklejona do cyfr numeru konta ("…2400 500,00 PLN" ≠ 2 400 500 zł)
+          const amountMatch = blok.match(/(?<!\d[\s\u00A0]?)(-?\d{1,3}(?:[\s\u00A0]\d{3})*,\d{2})\s+PLN/);
 
           if (dateMatch && amountMatch) {
             const dataRaw = dateMatch[1];
@@ -245,18 +250,18 @@ export default function TransactionsPage() {
       }
 
       if (gotoweTransakcje.length > 0) {
-        const reguly = wczytajReguly();
         // Ten sam dzień, kwota i typ co w bazie = prawdopodobnie już zaimportowane
         const kluczDuplikatu = (data: string, kwota: number, typ: string) => `${data}|${kwota.toFixed(2)}|${typ}`;
         const istniejace = new Set(transakcje.map(t => kluczDuplikatu(t.data_transakcji, Number(t.kwota), t.typ)));
         setPodglad(gotoweTransakcje.map((t, i) => {
           const duplikat = istniejace.has(kluczDuplikatu(t.data_transakcji, t.kwota, t.typ));
-          const kategoria = kategoryzuj(t.nazwa, t.opis ?? '', t.typ, reguly);
+          const podejrzanaKwota = t.kwota > PODEJRZANA_KWOTA;
+          const kategoria = kategoryzuj(t.nazwa, t.opis ?? '', t.typ, reguly, wlasne);
           return {
             id: i, nazwa: t.nazwa, kwota: t.kwota, typ: t.typ, kategoria, kategoriaAuto: kategoria,
             data_transakcji: t.data_transakcji, notatki: t.notatki,
-            uwaga: t.wlasny ? 'Przelew własny' : duplikat ? 'Już w bazie' : '',
-            zaznaczona: !t.wlasny && !duplikat,
+            uwaga: podejrzanaKwota ? 'Sprawdź kwotę' : t.wlasny ? 'Przelew własny' : duplikat ? 'Już w bazie' : '',
+            zaznaczona: !t.wlasny && !duplikat && !podejrzanaKwota,
           };
         }));
       } else {
@@ -270,6 +275,17 @@ export default function TransactionsPage() {
 
   const zmienWierszImportu = (id: number, zmiany: Partial<WierszImportu>) => {
     setPodglad(p => p && p.map(w => w.id === id ? { ...w, ...zmiany } : w));
+  };
+
+  // Zmiana kategorii obejmuje wszystkie pozycje tego samego kontrahenta w podglądzie
+  const zmienKategorieImportu = (id: number, kategoria: string) => {
+    setPodglad(p => {
+      if (!p) return p;
+      const wiersz = p.find(w => w.id === id);
+      if (!wiersz) return p;
+      const klucz = kluczReguly(wiersz.typ, wiersz.nazwa);
+      return p.map(w => kluczReguly(w.typ, w.nazwa) === klucz ? { ...w, kategoria } : w);
+    });
   };
 
   const zamknijImport = () => { setIsImportModalOpen(false); setPodglad(null); };
@@ -287,8 +303,8 @@ export default function TransactionsPage() {
 
     // Ręczne poprawki kategorii zapamiętujemy dla kolejnych importów
     const nauczone: Record<string, string> = {};
-    doZapisu.filter(w => w.kategoria !== w.kategoriaAuto).forEach(w => { nauczone[`${w.typ}:${kluczKontrahenta(w.nazwa)}`] = w.kategoria; });
-    zapiszReguly(nauczone);
+    doZapisu.filter(w => w.kategoria !== w.kategoriaAuto).forEach(w => { nauczone[kluczReguly(w.typ, w.nazwa)] = w.kategoria; });
+    await dodajReguly(nauczone);
 
     alert(`Sukces! Zaimportowano ${doZapisu.length} transakcji.`);
     setPlik(null); zamknijImport(); mutate();
@@ -491,7 +507,7 @@ export default function TransactionsPage() {
                 <div className="p-6">
                   <p className="text-sm text-gray-500 font-medium mb-4">
                     Znaleziono {podglad.length} transakcji, do importu: <span className="font-bold text-slate-900">{podglad.filter(w => w.zaznaczona).length}</span>.
-                    Przelewy własne i pozycje, które już masz w bazie, są odznaczone. Zmienione kategorie zapamiętam na przyszłość.
+                    Przelewy własne, pozycje, które już masz w bazie, i podejrzanie wysokie kwoty są odznaczone. Zmiana kategorii obejmuje wszystkie pozycje tego kontrahenta i zostanie zapamiętana.
                   </p>
                   <div className="max-h-[55vh] overflow-y-auto -mx-2 px-2 space-y-1">
                     {podglad.map(w => (
@@ -507,7 +523,7 @@ export default function TransactionsPage() {
                         <span className={`font-bold whitespace-nowrap ${w.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
                           {w.typ === 'przychod' ? '+' : '-'}{formatujWalute(w.kwota)}
                         </span>
-                        <select value={w.kategoria} onChange={(e) => zmienWierszImportu(w.id, { kategoria: e.target.value })} className="w-40 shrink-0 px-2 py-2 rounded-lg border border-gray-200 bg-white text-sm">
+                        <select value={w.kategoria} onChange={(e) => zmienKategorieImportu(w.id, e.target.value)} className="w-44 shrink-0 px-2 py-2 rounded-lg border border-gray-200 bg-white text-sm">
                           {(w.typ === 'wydatek' ? KATEGORIE_WYDATKOW : KATEGORIE_PRZYCHODOW).map(k => (
                             <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>
                           ))}
