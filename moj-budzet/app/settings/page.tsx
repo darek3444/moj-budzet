@@ -9,7 +9,10 @@ import PorzadkowanieKategorii from '../../components/PorzadkowanieKategorii';
 import KopiaZapasowa from '../../components/KopiaZapasowa';
 import StatusKonta from '../../components/StatusKonta';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Download, Settings, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Download, Settings, Loader2, ChevronDown } from 'lucide-react';
+
+// Wspólny wygląd pól formularza limitu – ta sama wysokość dla listy i pól tekstowych
+const POLE = 'h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 font-medium outline-none transition-all placeholder:text-gray-400 focus:bg-white focus:border-slate-300 focus:ring-4 focus:ring-slate-100';
 
 export default function SettingsPage() {
   // Transakcje potrzebne tylko do eksportu – strona nie czeka na nie z renderem
@@ -44,7 +47,7 @@ export default function SettingsPage() {
     const nowyLimit = {
       id: index >= 0 ? noweLimity[index].id : Date.now().toString(),
       kategoria,
-      limit_kwota: parseFloat(limitKwota),
+      limit_kwota: parseFloat(limitKwota.replace(',', '.')),
       prog_alertu: parseFloat(progAlertu)
     };
 
@@ -127,31 +130,44 @@ export default function SettingsPage() {
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
           className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm"
         >
-          <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Plus size={20} className="text-slate-700" /> Dodaj nowy limit
-          </h2>
-          
-          <form onSubmit={dodajLimit} className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Kategoria</label>
-              <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-slate-200 focus:outline-none">
-                <option value="">Wybierz kategorię</option>
-                {KATEGORIE_WYDATKOW.map(k => <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>)}
-              </select>
+          <div className="flex items-start gap-3 mb-6">
+            <div className="bg-slate-100 text-slate-700 p-2.5 rounded-xl shrink-0"><Plus size={20} /></div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Dodaj nowy limit</h2>
+              <p className="text-sm text-gray-500 font-medium">Miesięczny budżet dla kategorii i próg, od którego chcesz dostać ostrzeżenie.</p>
             </div>
-            
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Miesięczny limit (zł)</label>
-              <input required value={limitKwota} onChange={(e) => setLimitKwota(e.target.value)} type="number" step="0.01" min="1" placeholder="np. 1000.00" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
-            </div>
+          </div>
 
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Próg alertu (%)</label>
-              <input required value={progAlertu} onChange={(e) => setProgAlertu(e.target.value)} type="number" min="1" max="100" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-slate-200" />
-            </div>
+          <form onSubmit={dodajLimit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_auto] gap-4 items-end">
+            <label className="block">
+              <span className="block text-sm font-bold text-gray-700 mb-2">Kategoria</span>
+              <span className="relative block">
+                <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className={`${POLE} appearance-none pr-10 cursor-pointer ${kategoria ? 'text-slate-900' : 'text-gray-400'}`}>
+                  <option value="">Wybierz kategorię</option>
+                  {KATEGORIE_WYDATKOW.map(k => <option key={k.id} value={k.id} className="text-slate-900">{k.ikona} {k.nazwa}</option>)}
+                </select>
+                <ChevronDown size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </span>
+            </label>
 
-            <button type="submit" className="w-full md:w-auto bg-slate-500 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-sm active:scale-95 whitespace-nowrap">
-              <Plus size={18} className="inline mr-1" /> Dodaj limit
+            <label className="block">
+              <span className="block text-sm font-bold text-gray-700 mb-2">Miesięczny limit</span>
+              <span className="relative block">
+                <input required value={limitKwota} onChange={(e) => setLimitKwota(e.target.value)} type="text" inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" title="Kwota, np. 1000 albo 1000,50" placeholder="np. 1000" className={`${POLE} pr-11 text-slate-900`} />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 pointer-events-none">zł</span>
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="block text-sm font-bold text-gray-700 mb-2">Ostrzeż przy</span>
+              <span className="relative block">
+                <input required value={progAlertu} onChange={(e) => setProgAlertu(e.target.value)} type="text" inputMode="numeric" pattern="([1-9][0-9]?|100)" title="Liczba od 1 do 100" className={`${POLE} pr-11 text-slate-900`} />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 pointer-events-none">%</span>
+              </span>
+            </label>
+
+            <button type="submit" className="h-12 sm:col-span-2 lg:col-span-1 w-full lg:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+              <Plus size={18} /> Dodaj limit
             </button>
           </form>
         </motion.div>
