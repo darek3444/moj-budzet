@@ -74,7 +74,7 @@ export default function SummaryPage() {
   if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
 
   return (
-    <main className="p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
+    <main className="px-4 py-5 sm:p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Podsumowanie</h1>
         <p className="text-gray-500 font-medium mt-1 mb-8">Zaawansowana analityka portfela</p>
@@ -83,15 +83,15 @@ export default function SummaryPage() {
       {/* FILTRY */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-start mb-8 w-fit"
+        className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-start mb-6 sm:mb-8 w-full sm:w-fit"
       >
-        <div className="flex flex-wrap gap-4 items-center">
-          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2 mr-2 flex items-center gap-2">
+        <div className="flex flex-wrap gap-1 sm:gap-4 items-center">
+          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2 mr-2 hidden sm:flex items-center gap-2">
             <Calendar size={18}/> Wybierz okres
           </span>
-          <button onClick={() => setOkres('biezacy_miesiac')} className={`px-5 py-2.5 rounded-xl font-bold transition-all ${okres === 'biezacy_miesiac' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Bieżący miesiąc</button>
-          <button onClick={() => setOkres('biezacy_rok')} className={`px-5 py-2.5 rounded-xl font-bold transition-all ${okres === 'biezacy_rok' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Bieżący rok</button>
-          <button onClick={() => setOkres('niestandardowy')} className={`px-5 py-2.5 rounded-xl font-bold transition-all ${okres === 'niestandardowy' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Niestandardowy</button>
+          <button onClick={() => setOkres('biezacy_miesiac')} className={`px-3 sm:px-5 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all ${okres === 'biezacy_miesiac' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Bieżący miesiąc</button>
+          <button onClick={() => setOkres('biezacy_rok')} className={`px-3 sm:px-5 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all ${okres === 'biezacy_rok' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Bieżący rok</button>
+          <button onClick={() => setOkres('niestandardowy')} className={`px-3 sm:px-5 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all ${okres === 'niestandardowy' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-600 hover:bg-gray-100'}`}>Niestandardowy</button>
         </div>
 
         {/* POLA DAT BEZ FRAMER MOTION (żeby systemowe kalendarze z Safari działały płynnie) */}
@@ -110,7 +110,7 @@ export default function SummaryPage() {
       </motion.div>
 
       {/* 4 KARTY */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-10">
         {[
           { tytul: 'PRZYCHODY', kwota: przychody, podtytul: `${liczbaPrzychodow} transakcji`, ikona: <TrendingUp size={20} />, bg: 'bg-[#22c55e]' },
           { tytul: 'WYDATKI', kwota: wydatki, podtytul: `${liczbaWydatkow} transakcji`, ikona: <TrendingDown size={20} />, bg: 'bg-[#ef4444]' },
@@ -120,23 +120,23 @@ export default function SummaryPage() {
           <motion.div 
             key={karta.tytul}
             initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }}
-            className={`${karta.bg} text-white p-6 rounded-3xl relative overflow-hidden shadow-lg`}
+            className={`${karta.bg} text-white p-4 sm:p-6 rounded-3xl relative overflow-hidden shadow-lg`}
           >
             <div className="flex justify-between items-start mb-4">
               <span className="text-xs font-bold uppercase tracking-wider opacity-90">{karta.tytul}</span>
               <div className="bg-white/20 p-2 rounded-xl">{karta.ikona}</div>
             </div>
-            <div className="text-3xl font-extrabold tracking-tight">{formatujWalute(karta.kwota)}</div>
+            <div className="text-lg sm:text-3xl font-extrabold tracking-tight">{formatujWalute(karta.kwota)}</div>
             <p className="text-xs opacity-80 font-medium mt-2">{karta.podtytul}</p>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-10">
         {/* ŚREDNIE MIESIĘCZNE */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm"
+          className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm"
         >
           <h2 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2"><Clock size={20} className="text-gray-400"/> Średnie Miesięczne</h2>
           <div className="space-y-4">
@@ -158,7 +158,7 @@ export default function SummaryPage() {
         {/* WYDATKI NA KATEGORIE */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm h-fit"
+          className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm h-fit"
         >
           <h2 className="text-xl font-extrabold text-slate-900 mb-6">Średnie wydatki na kategorie</h2>
           <div className="space-y-2">
@@ -190,7 +190,7 @@ export default function SummaryPage() {
       {/* WYKRES */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }}
-        className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm"
+        className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm"
       >
         <h2 className="text-xl font-extrabold text-slate-900 mb-8">Wykres Miesięczny</h2>
         <div className="h-80 w-full">

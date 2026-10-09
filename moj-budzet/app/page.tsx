@@ -108,13 +108,13 @@ export default function Home() {
   }
 
   return (
-    <main className="p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
+    <main className="px-4 py-5 sm:p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
       
       <motion.header 
         initial={{ opacity: 0, y: -20 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10"
+        className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 sm:mb-10"
       >
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
@@ -129,7 +129,7 @@ export default function Home() {
         </button>
       </motion.header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-10">
         {[
           { tytul: 'Bilans', kwota: przychody - wydatki, ikona: <Wallet size={20} />, kolorBg: 'bg-[#1e293b]', kolorText: 'text-slate-300', typ: null },
           { tytul: 'Przychody', kwota: przychody, ikona: <TrendingUp size={20} />, kolorBg: 'bg-[#22c55e]', kolorText: 'text-emerald-50', typ: 'przychod' as const },
@@ -145,24 +145,24 @@ export default function Home() {
               onClick: () => setLista(karta.typ),
               onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLista(karta.typ); } },
             })}
-            className={`${karta.kolorBg} text-white p-6 rounded-3xl shadow-lg relative overflow-hidden ${karta.typ ? 'cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20' : ''}`}
+            className={`${karta.kolorBg} text-white p-4 sm:p-6 rounded-3xl shadow-lg relative overflow-hidden ${karta.typ ? '' : 'col-span-2 md:col-span-1'} ${karta.typ ? 'cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20' : ''}`}
           >
-            <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex justify-between items-start mb-3 sm:mb-6 relative z-10">
               <span className={`${karta.kolorText} font-medium`}>{karta.tytul}</span>
-              <div className="bg-white/10 p-2.5 rounded-xl">{karta.ikona}</div>
+              <div className="bg-white/10 p-2 sm:p-2.5 rounded-xl">{karta.ikona}</div>
             </div>
-            <div className="text-4xl font-bold relative z-10 tracking-tight">{formatujWalute(karta.kwota)}</div>
+            <div className={`${karta.typ ? 'text-xl sm:text-4xl' : 'text-3xl sm:text-4xl'} font-bold relative z-10 tracking-tight`}>{formatujWalute(karta.kwota)}</div>
             {karta.typ && <p className={`${karta.kolorText} text-xs font-medium mt-3 relative z-10 opacity-80`}>Pokaż listę →</p>}
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-10">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
-          className="lg:col-span-2 bg-white rounded-3xl p-8 border border-gray-100 shadow-sm"
+          className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm"
         >
           <h2 className="text-xl font-extrabold text-slate-900 mb-6">Transakcje - {nazwyMiesiecy[miesiac]}</h2>
           <div className="space-y-2">
@@ -178,16 +178,16 @@ export default function Home() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100"
+                  className="flex items-center justify-between gap-3 p-2 sm:p-4 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>{getIcon(t.typ, t.kategoria)}</div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-lg capitalize truncate max-w-[150px] md:max-w-xs">{t.nazwa}</p>
-                      <p className="text-sm text-gray-500 font-medium capitalize">{formatujNazweKategorii(t.kategoria || 'inne_wydatki')} • {t.data_transakcji}</p>
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className={`w-11 h-11 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center text-xl sm:text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>{getIcon(t.typ, t.kategoria)}</div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 text-base sm:text-lg capitalize truncate">{t.nazwa}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 font-medium truncate">{formatujNazweKategorii(t.kategoria || 'inne_wydatki')} • {t.data_transakcji}</p>
                     </div>
                   </div>
-                  <span className={`font-bold text-lg ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                  <span className={`font-bold text-base sm:text-lg whitespace-nowrap shrink-0 ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
                     {t.typ === 'przychod' ? '+' : '-'}{formatujWalute(Number(t.kwota))}
                   </span>
                 </motion.div>
@@ -200,7 +200,7 @@ export default function Home() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm h-fit"
+          className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm h-fit"
         >
           <h2 className="text-xl font-extrabold text-slate-900 mb-8">Wydatki wg kategorii</h2>
           <div className="space-y-6">
@@ -217,7 +217,7 @@ export default function Home() {
                   <div className="flex justify-between items-end mb-3">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{getIcon('wydatek', kat.nazwa)}</span>
-                      <span className="font-bold text-slate-900 capitalize">{formatujNazweKategorii(kat.nazwa)}</span>
+                      <span className="font-bold text-slate-900">{formatujNazweKategorii(kat.nazwa)}</span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-slate-900">{formatujWalute(kat.kwota)}</span>
@@ -244,7 +244,7 @@ export default function Home() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
-        className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-10"
+        className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm mb-10"
       >
         <h2 className="text-xl font-extrabold text-slate-900 mb-8">Porównanie: {nazwyMiesiecy[miesiac]} {rok}</h2>
         <div className="h-72 w-full">
@@ -295,7 +295,7 @@ export default function Home() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"/>
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden relative z-10">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10">
               <div className="flex justify-between items-center p-6 border-b border-gray-100"><h2 className="text-2xl font-bold text-slate-900">Nowa transakcja</h2><button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button></div>
               <form onSubmit={dodajTransakcje} className="p-6">
                 <div className="bg-gray-100 p-1 rounded-2xl flex mb-6">
@@ -305,7 +305,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Nazwa</label><input required value={nazwa} onChange={(e) => setNazwa(e.target.value)} type="text" placeholder="np. Zakupy" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all" /></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Kwota (zł)</label><input required value={kwota} onChange={(e) => setKwota(e.target.value)} type="number" step="0.01" min="0.01" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all" /></div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1.5">Kategoria</label>
                       <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none bg-white">

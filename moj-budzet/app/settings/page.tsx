@@ -7,6 +7,7 @@ import { useKategorie } from '../../components/KategorieProvider';
 import WlasneKategorie from '../../components/WlasneKategorie';
 import PorzadkowanieKategorii from '../../components/PorzadkowanieKategorii';
 import KopiaZapasowa from '../../components/KopiaZapasowa';
+import StatusKonta from '../../components/StatusKonta';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Download, Settings, Loader2 } from 'lucide-react';
 
@@ -106,7 +107,7 @@ export default function SettingsPage() {
   if (!czyZaladowanoLimity) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
 
   return (
-    <main className="p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
+    <main className="px-4 py-5 sm:p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full">
       <motion.header 
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
         className="mb-10"
@@ -116,6 +117,11 @@ export default function SettingsPage() {
       </motion.header>
 
       <div className="space-y-8">
+        {/* Na telefonie nie ma lewego paska – konto i synchronizacja są tutaj */}
+        <div id="konto" className="md:hidden bg-white rounded-3xl p-5 border border-gray-100 shadow-sm scroll-mt-20 flex flex-col">
+          <h2 className="text-lg font-bold text-slate-900">Konto i synchronizacja</h2>
+          <StatusKonta />
+        </div>
         {/* SEKCJA DODAWANIA LIMITÓW */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}

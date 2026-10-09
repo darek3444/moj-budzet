@@ -108,11 +108,13 @@ export default function TransactionsPage() {
   };
 
   const usunTransakcje = async (listaIdDoUsuniecia: string[]) => {
-    if (!confirm(`Czy usunąć ${listaIdDoUsuniecia.length} transakcji?`)) return;
+    if (!confirm(`Czy usunąć ${listaIdDoUsuniecia.length} transakcji?`)) return false;
     setCzyUsuwa(true);
     const { error } = usunZMagazynu(listaIdDoUsuniecia);
     setCzyUsuwa(false);
-    if (!error) { setZaznaczoneId([]); } else alert('Błąd: ' + error.message);
+    if (!error) { setZaznaczoneId([]); return true; }
+    alert('Błąd: ' + error.message);
+    return false;
   };
 
   const toggleZaznaczenie = (id: string) => {
@@ -354,13 +356,13 @@ export default function TransactionsPage() {
   };
 
   return (
-    <main className="p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full overflow-x-hidden">
+    <main className="px-4 py-5 sm:p-8 md:p-10 max-w-6xl mx-auto overflow-y-auto w-full overflow-x-hidden">
       
       <motion.header 
         initial={{ opacity: 0, y: -20 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8"
+        className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-5 sm:mb-8"
       >
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Transakcje</h1>
@@ -373,11 +375,11 @@ export default function TransactionsPage() {
         </div>
         
         <div className="flex gap-3">
-          <button onClick={() => setIsImportModalOpen(true)} className="bg-white border-2 border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+          <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none justify-center bg-white border-2 border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
             <UploadCloud size={20} /> Importuj
           </button>
           
-          <button onClick={otworzDoDodania} className="bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95">
+          <button onClick={otworzDoDodania} className="flex-1 md:flex-none justify-center bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95">
             <Plus size={20} /> Nowa
           </button>
         </div>
@@ -385,17 +387,17 @@ export default function TransactionsPage() {
 
       <motion.div 
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 mb-8"
+        className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-3 md:gap-4 mb-5 sm:mb-8"
       >
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input type="text" value={wyszukiwarka} onChange={(e) => { setWyszukiwarka(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} placeholder="Szukaj transakcji..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"/>
         </div>
-        <div className="flex gap-4">
-          <select value={filtrTyp} onChange={(e) => { setFiltrTyp(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[140px] cursor-pointer">
+        <div className="grid grid-cols-2 md:flex gap-3 md:gap-4">
+          <select value={filtrTyp} onChange={(e) => { setFiltrTyp(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 w-full min-w-0 md:w-auto md:min-w-[140px] cursor-pointer">
             <option value="wszystkie">Wszystkie</option><option value="przychod">Przychody</option><option value="wydatek">Wydatki</option>
           </select>
-          <select value={filtrKategoria} onChange={(e) => { setFiltrKategoria(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 min-w-[180px] cursor-pointer capitalize">
+          <select value={filtrKategoria} onChange={(e) => { setFiltrKategoria(e.target.value); setIleWidocznych(PORCJA_WIERSZY); }} className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 w-full min-w-0 md:w-auto md:min-w-[180px] cursor-pointer capitalize">
             <option value="wszystkie">Wszystkie kategorie</option>
             <optgroup label="Wydatki">
               {KATEGORIE_WYDATKOW.map(k => <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>)}
@@ -415,7 +417,7 @@ export default function TransactionsPage() {
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex justify-between items-center">
+            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex flex-wrap gap-3 justify-between items-center">
               <span className="font-bold text-red-800">Zaznaczono {zaznaczoneId.length} transakcji</span>
               <button onClick={() => usunTransakcje(zaznaczoneId)} disabled={czyUsuwa} className="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2">
                 <Trash2 size={18} /> {czyUsuwa ? 'Usuwanie...' : 'Usuń wybrane'}
@@ -427,10 +429,10 @@ export default function TransactionsPage() {
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white rounded-3xl p-4 md:p-8 border border-gray-100 shadow-sm space-y-2 min-h-[400px]"
+        className="bg-white rounded-3xl p-2 sm:p-4 md:p-8 border border-gray-100 shadow-sm space-y-1 sm:space-y-2 min-h-[400px]"
       >
         {przefiltrowaneTransakcje.length > 0 && (
-          <div className="flex items-center gap-3 px-4 pb-4 border-b border-gray-50 mb-2">
+          <div className="hidden sm:flex items-center gap-3 px-4 pb-4 border-b border-gray-50 mb-2">
             <input type="checkbox" checked={zaznaczoneId.length === przefiltrowaneTransakcje.length} onChange={toggleZaznaczWszystkie} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6]" />
             <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Zaznacz wszystkie</span>
           </div>
@@ -450,21 +452,23 @@ export default function TransactionsPage() {
               return (
               <div 
                 key={t.id} 
-                className={`flex items-center justify-between p-4 rounded-2xl transition-colors border group ${zaznaczona ? 'bg-violet-50/50 border-violet-100' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'}`}
+                // Stuknięcie w wiersz otwiera edycję (na telefonie nie ma najechania kursorem)
+                onClick={(e) => { if (!(e.target as HTMLElement).closest('input, button')) otworzDoEdycji(t); }}
+                className={`flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl transition-colors border group cursor-pointer ${zaznaczona ? 'bg-violet-50/50 border-violet-100' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'}`}
               >
-                <div className="flex items-center gap-4">
-                  <input type="checkbox" checked={zaznaczona} onChange={() => toggleZaznaczenie(t.id)} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6]" />
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                  <input type="checkbox" checked={zaznaczona} onChange={() => toggleZaznaczenie(t.id)} className="hidden sm:block shrink-0 w-5 h-5 rounded cursor-pointer accent-[#8b5cf6]" />
+                  <div className={`w-11 h-11 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center text-xl sm:text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>
                     {getIcon(t.typ, t.kategoria)}
                   </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-lg capitalize truncate max-w-[150px] md:max-w-md">{t.nazwa}</p>
-                    <p className="text-sm text-gray-500 font-medium capitalize">{formatujNazweKategorii(t.kategoria || 'inne_wydatki')} • {t.data_transakcji}</p>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 text-base sm:text-lg capitalize truncate">{t.nazwa}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 font-medium truncate">{formatujNazweKategorii(t.kategoria || 'inne_wydatki')} • {t.data_transakcji}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className={`font-bold text-lg ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`font-bold text-base sm:text-lg whitespace-nowrap ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
                     {t.typ === 'przychod' ? '+' : '-'}{formatujWalute(Number(t.kwota))}
                   </span>
                   
@@ -491,7 +495,7 @@ export default function TransactionsPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden relative z-10">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10">
               <div className="flex justify-between items-center p-6 border-b border-gray-100"><h2 className="text-2xl font-bold text-slate-900">{editingId ? 'Edytuj transakcję' : 'Nowa transakcja'}</h2><button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button></div>
               <form onSubmit={zapiszTransakcje} className="p-6">
                 <div className="bg-gray-100 p-1 rounded-2xl flex mb-6">
@@ -501,7 +505,7 @@ export default function TransactionsPage() {
                 <div className="space-y-4">
                   <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Nazwa</label><input required value={nazwa} onChange={(e) => setNazwa(e.target.value)} type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all" /></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-1.5">Kwota (zł)</label><input required value={kwota} onChange={(e) => setKwota(e.target.value)} type="number" step="0.01" min="0.01" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all" /></div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Kategoria</label>
                        <select required value={kategoria} onChange={(e) => setKategoria(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white">
@@ -515,6 +519,11 @@ export default function TransactionsPage() {
                   </div>
                 </div>
                 <button type="submit" disabled={isSubmitting} className="w-full mt-6 bg-[#bfa8ff] hover:bg-[#a78bfa] text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm disabled:opacity-50">{isSubmitting ? 'Zapisywanie...' : (editingId ? 'Zapisz zmiany' : 'Dodaj')}</button>
+                {editingId && (
+                  <button type="button" onClick={async () => { if (await usunTransakcje([editingId])) setIsModalOpen(false); }} className="w-full mt-3 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 font-bold py-3 rounded-xl transition-colors">
+                    <Trash2 size={18} /> Usuń transakcję
+                  </button>
+                )}
               </form>
             </motion.div>
           </div>
@@ -525,7 +534,7 @@ export default function TransactionsPage() {
         {isImportModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={zamknijImport} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className={`bg-white rounded-[32px] shadow-2xl w-full ${podglad ? 'max-w-3xl' : 'max-w-md'} overflow-hidden relative z-10`}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className={`bg-white rounded-[32px] shadow-2xl w-full ${podglad ? 'max-w-3xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative z-10`}>
               <div className="flex justify-between items-center p-6 border-b border-gray-100"><h2 className="text-2xl font-bold text-slate-900">{podglad ? 'Sprawdź kategorie' : 'Importuj wyciąg'}</h2><button onClick={zamknijImport} className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button></div>
               {podglad ? (
                 <div className="p-6">
@@ -546,7 +555,7 @@ export default function TransactionsPage() {
                   )}
                   <div className="max-h-[55vh] overflow-y-auto -mx-2 px-2 space-y-1">
                     {podglad.map(w => (
-                      <div key={w.id} className={`flex items-center gap-3 p-2.5 rounded-xl border ${w.zaznaczona ? 'border-gray-100' : 'border-transparent opacity-50'}`}>
+                      <div key={w.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2 p-2.5 rounded-xl border ${w.zaznaczona ? 'border-gray-100' : 'border-transparent opacity-50'}`}>
                         <input type="checkbox" checked={w.zaznaczona} onChange={() => zmienWierszImportu(w.id, { zaznaczona: !w.zaznaczona })} className="w-5 h-5 rounded cursor-pointer accent-[#8b5cf6] shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-slate-900 truncate">{w.nazwa}</p>
@@ -558,7 +567,7 @@ export default function TransactionsPage() {
                         <span className={`font-bold whitespace-nowrap ${w.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
                           {w.typ === 'przychod' ? '+' : '-'}{formatujWalute(w.kwota)}
                         </span>
-                        <select value={w.kategoria} onChange={(e) => zmienKategorieImportu(w.id, e.target.value)} className="w-44 shrink-0 px-2 py-2 rounded-lg border border-gray-200 bg-white text-sm">
+                        <select value={w.kategoria} onChange={(e) => zmienKategorieImportu(w.id, e.target.value)} className="ml-8 sm:ml-0 w-[calc(100%-2rem)] sm:w-44 shrink-0 px-2 py-2 rounded-lg border border-gray-200 bg-white text-sm">
                           {(w.typ === 'wydatek' ? KATEGORIE_WYDATKOW : KATEGORIE_PRZYCHODOW).map(k => (
                             <option key={k.id} value={k.id}>{k.ikona} {k.nazwa}</option>
                           ))}
