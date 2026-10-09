@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { dodajTransakcje as zapiszTransakcje } from '../lib/magazyn';
 import { useTransakcje } from '../lib/useTransakcje';
@@ -13,6 +13,10 @@ const WykresSlupkowy = dynamic(() => import('../components/WykresSlupkowy'), { s
 
 const nazwyMiesiecy = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
 
+// 1 pozycja, 2–4 pozycje (ale 12–14 pozycji), 5+ pozycji
+const odmienPozycje = (n: number) =>
+  n === 1 ? 'pozycja' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'pozycje' : 'pozycji';
+
 export default function Home() {
   const { data: wszystkieTransakcje = [], isLoading } = useTransakcje();
   const { KATEGORIE_WYDATKOW, KATEGORIE_PRZYCHODOW, getIcon, getCategoryColor, formatujNazweKategorii } = useKategorie();
@@ -20,6 +24,15 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState('wydatek');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Lista przychodów albo wydatków z miesiąca po kliknięciu w kartę
+  const [lista, setLista] = useState<'przychod' | 'wydatek' | null>(null);
+
+  useEffect(() => {
+    if (!lista) return;
+    const zamknij = (e: KeyboardEvent) => { if (e.key === 'Escape') setLista(null); };
+    window.addEventListener('keydown', zamknij);
+    return () => window.removeEventListener('keydown', zamknij);
+  }, [lista]);
 
   const [miesiac, setMiesiac] = useState(new Date().getMonth());
   const [rok, setRok] = useState(new Date().getFullYear());
@@ -118,22 +131,28 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {[
-          { tytul: 'Bilans', kwota: przychody - wydatki, ikona: <Wallet size={20} />, kolorBg: 'bg-[#1e293b]', kolorText: 'text-slate-300' },
-          { tytul: 'Przychody', kwota: przychody, ikona: <TrendingUp size={20} />, kolorBg: 'bg-[#22c55e]', kolorText: 'text-emerald-50' },
-          { tytul: 'Wydatki', kwota: wydatki, ikona: <TrendingDown size={20} />, kolorBg: 'bg-[#ef4444]', kolorText: 'text-red-50' }
+          { tytul: 'Bilans', kwota: przychody - wydatki, ikona: <Wallet size={20} />, kolorBg: 'bg-[#1e293b]', kolorText: 'text-slate-300', typ: null },
+          { tytul: 'Przychody', kwota: przychody, ikona: <TrendingUp size={20} />, kolorBg: 'bg-[#22c55e]', kolorText: 'text-emerald-50', typ: 'przychod' as const },
+          { tytul: 'Wydatki', kwota: wydatki, ikona: <TrendingDown size={20} />, kolorBg: 'bg-[#ef4444]', kolorText: 'text-red-50', typ: 'wydatek' as const }
         ].map((karta, index) => (
           <motion.div 
             key={karta.tytul}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className={`${karta.kolorBg} text-white p-6 rounded-3xl shadow-lg relative overflow-hidden`}
+            {...(karta.typ && {
+              role: 'button', tabIndex: 0, 'aria-label': `Pokaż ${karta.tytul.toLowerCase()} z miesiąca`,
+              onClick: () => setLista(karta.typ),
+              onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLista(karta.typ); } },
+            })}
+            className={`${karta.kolorBg} text-white p-6 rounded-3xl shadow-lg relative overflow-hidden ${karta.typ ? 'cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20' : ''}`}
           >
             <div className="flex justify-between items-start mb-6 relative z-10">
               <span className={`${karta.kolorText} font-medium`}>{karta.tytul}</span>
               <div className="bg-white/10 p-2.5 rounded-xl">{karta.ikona}</div>
             </div>
             <div className="text-4xl font-bold relative z-10 tracking-tight">{formatujWalute(karta.kwota)}</div>
+            {karta.typ && <p className={`${karta.kolorText} text-xs font-medium mt-3 relative z-10 opacity-80`}>Pokaż listę →</p>}
           </motion.div>
         ))}
       </div>
@@ -232,6 +251,45 @@ export default function Home() {
           <WykresSlupkowy data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barSize={60} radius={8} kolorPrzychodow="#10b981" rozmiarOsiX={14} />
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {lista && (() => {
+          const pozycje = listaZMiesiaca.filter(t => t.typ === lista);
+          const suma = lista === 'przychod' ? przychody : wydatki;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLista(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+              <motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", duration: 0.5 }} className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative z-10 flex flex-col max-h-[85vh]">
+                <div className="flex justify-between items-start p-6 border-b border-gray-100">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">{lista === 'przychod' ? 'Przychody' : 'Wydatki'} – {nazwyMiesiecy[miesiac]} {rok}</h2>
+                    <p className="text-sm text-gray-500 font-medium mt-1">
+                      {pozycje.length} {odmienPozycje(pozycje.length)} • razem <span className={`font-bold ${lista === 'przychod' ? 'text-emerald-600' : 'text-red-500'}`}>{formatujWalute(suma)}</span>
+                    </p>
+                  </div>
+                  <button onClick={() => setLista(null)} aria-label="Zamknij" className="text-gray-400 hover:text-slate-900 p-1"><X size={24} /></button>
+                </div>
+                <div className="overflow-y-auto p-4 space-y-1">
+                  {pozycje.length === 0 ? (
+                    <p className="text-center text-gray-400 font-medium py-10">Brak {lista === 'przychod' ? 'przychodów' : 'wydatków'} w tym miesiącu.</p>
+                  ) : pozycje.map(t => (
+                    <div key={t.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl hover:bg-gray-50">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>{getIcon(t.typ, t.kategoria)}</div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 truncate">{t.nazwa}</p>
+                          <p className="text-xs text-gray-500 font-medium">{formatujNazweKategorii(t.kategoria || (t.typ === 'przychod' ? 'inne_przychody' : 'inne_wydatki'))} • {t.data_transakcji}</p>
+                        </div>
+                      </div>
+                      <span className={`font-bold whitespace-nowrap ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>{t.typ === 'przychod' ? '+' : '-'}{formatujWalute(Number(t.kwota))}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isModalOpen && (
