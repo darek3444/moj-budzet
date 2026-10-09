@@ -158,43 +158,17 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-10">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm"
-        >
-          <h2 className="text-xl font-extrabold text-slate-900 mb-6">Transakcje - {nazwyMiesiecy[miesiac]}</h2>
-          <div className="space-y-2">
-            {listaZMiesiaca.length === 0 ? (
-              <div className="text-center py-10">
-                <span className="text-4xl mb-3 block">👻</span>
-                <p className="text-gray-400 font-medium">Brak transakcji w tym miesiącu.</p>
-              </div>
-            ) : (
-              listaZMiesiaca.slice(0, 5).map((t, i) => (
-                <motion.div 
-                  key={t.id} 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="flex items-center justify-between gap-3 p-2 sm:p-4 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div className={`w-11 h-11 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center text-xl sm:text-2xl ${t.typ === 'przychod' ? 'bg-emerald-50' : 'bg-orange-50'}`}>{getIcon(t.typ, t.kategoria)}</div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-slate-900 text-base sm:text-lg capitalize truncate">{t.nazwa}</p>
-                      <p className="text-xs sm:text-sm text-gray-500 font-medium truncate">{formatujNazweKategorii(t.kategoria || 'inne_wydatki')} • {t.data_transakcji}</p>
-                    </div>
-                  </div>
-                  <span className={`font-bold text-base sm:text-lg whitespace-nowrap shrink-0 ${t.typ === 'przychod' ? 'text-emerald-600' : 'text-slate-900'}`}>
-                    {t.typ === 'przychod' ? '+' : '-'}{formatujWalute(Number(t.kwota))}
-                  </span>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </motion.div>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm"
+      >
+        <h2 className="text-xl font-extrabold text-slate-900 mb-8">Porównanie: {nazwyMiesiecy[miesiac]} {rok}</h2>
+        <div className="h-72 w-full">
+          <WykresSlupkowy data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barSize={60} radius={8} kolorPrzychodow="#10b981" rozmiarOsiX={14} />
+        </div>
+      </motion.div>
 
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
@@ -219,7 +193,7 @@ export default function Home() {
                       <span className="text-xl">{getIcon('wydatek', kat.nazwa)}</span>
                       <span className="font-bold text-slate-900">{formatujNazweKategorii(kat.nazwa)}</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right whitespace-nowrap">
                       <span className="font-bold text-slate-900">{formatujWalute(kat.kwota)}</span>
                       <span className="text-sm text-gray-400 font-medium ml-2">{kat.procent}%</span>
                     </div>
@@ -240,17 +214,6 @@ export default function Home() {
         </motion.div>
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
-        className="bg-white rounded-3xl p-5 sm:p-8 border border-gray-100 shadow-sm mb-10"
-      >
-        <h2 className="text-xl font-extrabold text-slate-900 mb-8">Porównanie: {nazwyMiesiecy[miesiac]} {rok}</h2>
-        <div className="h-72 w-full">
-          <WykresSlupkowy data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barSize={60} radius={8} kolorPrzychodow="#10b981" rozmiarOsiX={14} />
-        </div>
-      </motion.div>
 
       <AnimatePresence>
         {lista && (() => {
