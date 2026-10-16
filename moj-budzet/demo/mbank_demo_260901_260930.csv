@@ -1,0 +1,79 @@
+mBank S.A. Bankowoœæ Detaliczna;
+		Skrytka Pocztowa 2108;
+		90-959 £ódŸ 2;
+		www.mBank.pl;
+		mLinia: 801 300 800;
+		+48 (42) 6 300 800;
+		
+
+#Klient;
+JAN PRZYK£ADOWY;
+
+Elektroniczne zestawienie operacji;
+
+#Za okres:;
+01.09.2026;30.09.2026;
+#Rodzaj rachunku;
+EKONTO;
+#Waluta;
+PLN;
+#Numer rachunku;
+00 1140 0000 0000 0000 0000 0000;
+#Data nastêpnej kapitalizacji;
+2026-10-31;
+#Oprocentowanie rachunku;
+0,00%;
+#Limit kredytu;
+0,00 PLN;
+#Oprocentowanie kredytu;
+0,00%;
+
+#Podsumowanie obrotów na rachunku;#Liczba operacji;#Wartoœæ operacji
+Uznania;5;7 775,00 PLN;
+Obci¹¿enia;31;3 903,49 PLN;
+£¹cznie;36;3 871,51 PLN;
+
+#Saldo pocz¹tkowe;2 840,15 PLN;
+
+#Data ksiêgowania;#Data operacji;#Opis operacji;#Tytu³;#Nadawca/Odbiorca;#Numer konta;#Kwota;#Saldo po operacji;
+2026-09-01;2026-09-01;ZAKUP PRZY U¯YCIU KARTY;"UBER   *EATS       /HELP.UBER.                                         DATA TRANSAKCJI: 2026-08-30";"  ";'';-72,40;2 767,75;
+2026-09-01;2026-09-01;PRZELEW ZEWNÊTRZNY PRZYCHODZ¥CY;"Wynagrodzenie 08/2026";"ACME SOLUTIONS SP. Z O.O. UL. FIRMOWA 21 00-950 WARSZAWA  ";'00105000001000000012345678';6 450,00;9 217,75;
+2026-09-02;2026-09-02;ZAKUP PRZY U¯YCIU KARTY;"Revolut**1234*     /Dublin                                             DATA TRANSAKCJI: 2026-09-01";"  ";'';-400,00;8 817,75;
+2026-09-02;2026-09-02;ZAKUP PRZY U¯YCIU KARTY;"JMP S.A. BIEDRONKA /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-01";"  ";'';-96,32;8 721,43;
+2026-09-03;2026-09-03;PRZELEW ZEWNÊTRZNY WYCHODZ¥CY;"OP£ATY TESTOWA 1/2";"WSPÓLNOTA MIESZKANIOWA TESTOWA 1  ";'00175000001000000099998888';-820,00;7 901,43;
+2026-09-04;2026-09-04;ZAKUP PRZY U¯YCIU KARTY;"ZABKA Z1234 K.1    /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-03";"  ";'';-21,47;7 879,96;
+2026-09-05;2026-09-05;BLIK P2P-WYCHODZ¥CY;"ZA BILETY NA KONCERT";"  ";'';-120,00;7 759,96;
+2026-09-05;2026-09-05;ZAKUP PRZY U¯YCIU KARTY;"ORLEN STACJA 4021  /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-04";"  ";'';-198,60;7 561,36;
+2026-09-06;2026-09-06;ZAKUP PRZY U¯YCIU KARTY;"NETFLIX.COM        /Amsterdam                                          DATA TRANSAKCJI: 2026-09-05";"  ";'';-43,00;7 518,36;
+2026-09-07;2026-09-07;BLIK P2P-PRZYCHODZ¥CY;"Przelew na telefon +48xxxxxx123    Przelew na telefon                 Dla Jan Przyk³adowy                 Od ANNA NOWAK";"  ";'';58,00;7 576,36;
+2026-09-08;2026-09-08;ZAKUP PRZY U¯YCIU KARTY;"LIDL PULAWSKA      /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-06";"  ";'';-143,85;7 432,51;
+2026-09-09;2026-09-09;ZAKUP PRZY U¯YCIU KARTY;"PayU*rossmann.pl   /Lodz                                               DATA TRANSAKCJI: 2026-09-08";"  ";'';-64,21;7 368,30;
+2026-09-10;2026-09-10;BLIK ZAKUP E-COMMERCE;"INTERCITY.PL";"  ";'';-89,00;7 279,30;
+2026-09-11;2026-09-11;PRZELEW ZEWNÊTRZNY WYCHODZ¥CY;"229757000001";"E.ON POLSKA S.A. UL. WYBRZE¯E KOŒCIUSZKOWSKIE 41 00-347 WARSZAWA  ";'00124000001000000077776666';-184,30;7 095,00;
+2026-09-12;2026-09-12;ZAKUP PRZY U¯YCIU KARTY;"APTEKA DBAM O ZDROW/WARSZAWA                                           DATA TRANSAKCJI: 2026-09-11";"  ";'';-37,90;7 057,10;
+2026-09-13;2026-09-13;ZAKUP PRZY U¯YCIU KARTY;"MULTIKINO ARKADIA  /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-12";"  ";'';-62,00;6 995,10;
+2026-09-14;2026-09-14;ZAKUP PRZY U¯YCIU KARTY;"UBER   *EATS       /HELP.UBER.                                         DATA TRANSAKCJI: 2026-09-12";"  ";'';-58,15;6 936,95;
+2026-09-15;2026-09-15;PRZELEW ZEWNÊTRZNY PRZYCHODZ¥CY;"FV 14/09/2026 projekt strony";"KLIENT TESTOWY SP. Z O.O. UL. PRZYK£ADOWA 10 31-000 KRAKÓW  ";'00109000001000000055554444';1 200,00;8 136,95;
+2026-09-15;2026-09-15;ZAKUP PRZY U¯YCIU KARTY;"SPOTIFY P2C4B7     /Stockholm                                          DATA TRANSAKCJI: 2026-09-14";"  ";'';-23,99;8 112,96;
+2026-09-16;2026-09-16;ZAKUP PRZY U¯YCIU KARTY;"DECATHLON          /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-15";"  ";'';-179,98;7 932,98;
+2026-09-17;2026-09-17;ZAKUP PRZY U¯YCIU KARTY;"JMDIF SP.Z.O.O. HEB/WARSZAWA                                           DATA TRANSAKCJI: 2026-09-16";"  ";'';-45,98;7 887,00;
+2026-09-18;2026-09-18;BLIK ZAKUP E-COMMERCE;"ALLEGRO.PL";"  ";'';-249,00;7 638,00;
+2026-09-19;2026-09-19;ZAKUP PRZY U¯YCIU KARTY;"Revolut**1234*     /Dublin                                             DATA TRANSAKCJI: 2026-09-18";"  ";'';-200,00;7 438,00;
+2026-09-19;2026-09-19;ZAKUP PRZY U¯YCIU KARTY;"PIZZERIA NAPOLI    /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-18";"  ";'';-88,50;7 349,50;
+2026-09-20;2026-09-20;BLIK P2P-PRZYCHODZ¥CY;"Przelew na telefon +48xxxxxx123    Przelew na telefon                 Dla Jan Przyk³adowy                 Od PIOTR KOWALCZYK";"  ";'';45,00;7 394,50;
+2026-09-21;2026-09-21;ZAKUP PRZY U¯YCIU KARTY;"MEDIA EXPERT       /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-19";"  ";'';-129,99;7 264,51;
+2026-09-22;2026-09-22;ZAKUP PRZY U¯YCIU KARTY;"ZABKA Z1234 K.1    /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-21";"  ";'';-16,98;7 247,53;
+2026-09-23;2026-09-23;ZAKUP PRZY U¯YCIU KARTY;"MAXI ZOO           /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-22";"  ";'';-112,40;7 135,13;
+2026-09-24;2026-09-24;ZAKUP PRZY U¯YCIU KARTY;"UBER   *ONE MEMBERS/AMSTERDAM                                          DATA TRANSAKCJI: 2026-09-23";"  ";'';-12,99;7 122,14;
+2026-09-25;2026-09-25;ZAKUP PRZY U¯YCIU KARTY;"KAUFLAND 0412      /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-24";"  ";'';-167,23;6 954,91;
+2026-09-26;2026-09-26;BLIK KOR. ZAKUPU E-COMMERCE;"INTERCITY.PL";"  ";'';22,00;6 976,91;
+2026-09-27;2026-09-27;ZAKUP PRZY U¯YCIU KARTY;"APPLE.COM/BILL     /APPLE.COM/                                         DATA TRANSAKCJI: 2026-09-25";"  ";'';-9,99;6 966,92;
+2026-09-28;2026-09-28;PRZELEW ZEWNÊTRZNY WYCHODZ¥CY;"Polisa OC 2026/09";"PZU SA AL. JANA PAW£A II 24 00-133 WARSZAWA  ";'00116000001000000033332222';-96,00;6 870,92;
+2026-09-29;2026-09-29;ZAKUP PRZY U¯YCIU KARTY;"JMP S.A. BIEDRONKA /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-28";"  ";'';-74,86;6 796,06;
+2026-09-30;2026-09-30;BLIK ZAKUP E-COMMERCE;"POLREGIO SPOLKA AKCYJNA";"  ";'';-19,40;6 776,66;
+2026-09-30;2026-09-30;ZAKUP PRZY U¯YCIU KARTY;"ORANGE POLSKA      /WARSZAWA                                           DATA TRANSAKCJI: 2026-09-29";"  ";'';-65,00;6 711,66;
+
+
+;;;;;;#Saldo koñcowe;6 711,66 PLN;
+
+DOKUMENT DEMONSTRACYJNY – dane fikcyjne, przygotowane do prezentacji aplikacji Mój Bud¿et.
